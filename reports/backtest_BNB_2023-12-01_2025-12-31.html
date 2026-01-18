@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raport Backtestingu - BNB PineScript Strategy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header .period {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card.positive .value {
+            color: #10b981;
+        }
+        
+        .stat-card.negative .value {
+            color: #ef4444;
+        }
+        
+        .section {
+            padding: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .param-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .param-item .param-name {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .param-item .param-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .profit {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .loss {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+            
+            .stat-card:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 BNB PineScript Strategy</h1>
+            <div class="period">
+                2023-12-01 → 2025-12-31 | Interwał: 1h
+            </div>
+        </div>
+        
+        <!-- Główne statystyki -->
+        <div class="stats-grid">
+            <div class="stat-card positive">
+                <div class="label">Zwrot</div>
+                <div class="value" style="color: green">+273.73%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Kapitał początkowy</div>
+                <div class="value">100.00 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Kapitał końcowy</div>
+                <div class="value">373.73 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Zysk/Strata</div>
+                <div class="value" style="color: green">+273.73 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Liczba transakcji</div>
+                <div class="value">53</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Współczynnik wygranych</div>
+                <div class="value" style="color: green">52.8%</div>
+            </div>
+            
+            <div class="stat-card positive">
+                <div class="label">Wygrane / Przegrane</div>
+                <div class="value">28 / 25</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Risk/Reward Ratio</div>
+                <div class="value">1.83</div>
+            </div>
+        </div>
+        
+        <!-- Parametry strategii -->
+        <div class="section">
+            <h2 class="section-title">⚙️ Parametry Strategii</h2>
+            <div class="params-grid">
+
+                <div class="param-item">
+                    <div class="param-name">num_falling</div>
+                    <div class="param-value">5</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">allow_one_break</div>
+                    <div class="param-value">True</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">take_profit_perc</div>
+                    <div class="param-value">4.0</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">stop_loss_perc</div>
+                    <div class="param-value">12.0</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">red_candles_to_sell</div>
+                    <div class="param-value">6</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">loss_lookback_bars</div>
+                    <div class="param-value">6</div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Tabela transakcji -->
+        <div class="section">
+            <h2 class="section-title">📈 Wszystkie Transakcje (53)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Symbol</th>
+                        <th>Wejście</th>
+                        <th>Wyjście</th>
+                        <th>Cena wejścia</th>
+                        <th>Cena wyjścia</th>
+                        <th>Zysk/Strata</th>
+                        <th>%</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>1</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2023-12-02 12:00:00</td>
+                        <td>2023-12-13 01:00:00</td>
+                        <td>227.6000</td>
+                        <td>249.6000</td>
+                        <td class="profit">+9.67 USDT</td>
+                        <td><span class="badge badge-success">+9.67%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2023-12-13 02:00:00</td>
+                        <td>2024-02-25 01:00:00</td>
+                        <td>249.7000</td>
+                        <td>380.6000</td>
+                        <td class="profit">+57.49 USDT</td>
+                        <td><span class="badge badge-success">+52.42%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-02-25 02:00:00</td>
+                        <td>2024-03-05 18:00:00</td>
+                        <td>380.3000</td>
+                        <td>403.6000</td>
+                        <td class="profit">+10.24 USDT</td>
+                        <td><span class="badge badge-success">+6.13%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>4</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-03-05 19:00:00</td>
+                        <td>2024-03-28 20:00:00</td>
+                        <td>376.8000</td>
+                        <td>581.1000</td>
+                        <td class="profit">+96.18 USDT</td>
+                        <td><span class="badge badge-success">+54.22%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>5</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-03-28 21:00:00</td>
+                        <td>2024-04-01 05:00:00</td>
+                        <td>581.5000</td>
+                        <td>579.9000</td>
+                        <td class="loss">-0.75 USDT</td>
+                        <td><span class="badge badge-danger">-0.28%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>6</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-04-01 06:00:00</td>
+                        <td>2024-04-11 09:00:00</td>
+                        <td>586.8000</td>
+                        <td>597.4000</td>
+                        <td class="profit">+4.93 USDT</td>
+                        <td><span class="badge badge-success">+1.81%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>7</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-04-11 10:00:00</td>
+                        <td>2024-04-13 20:00:00</td>
+                        <td>598.4000</td>
+                        <td>526.5920</td>
+                        <td class="loss">-33.33 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>8</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-04-13 21:00:00</td>
+                        <td>2024-04-26 11:00:00</td>
+                        <td>541.8000</td>
+                        <td>602.5000</td>
+                        <td class="profit">+27.38 USDT</td>
+                        <td><span class="badge badge-success">+11.20%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>9</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-04-26 12:00:00</td>
+                        <td>2024-05-31 06:00:00</td>
+                        <td>601.9000</td>
+                        <td>592.6000</td>
+                        <td class="loss">-4.20 USDT</td>
+                        <td><span class="badge badge-danger">-1.55%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>10</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-05-31 07:00:00</td>
+                        <td>2024-06-07 18:00:00</td>
+                        <td>591.9000</td>
+                        <td>678.2000</td>
+                        <td class="profit">+39.02 USDT</td>
+                        <td><span class="badge badge-success">+14.58%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>11</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-06-07 19:00:00</td>
+                        <td>2024-06-11 15:00:00</td>
+                        <td>681.2000</td>
+                        <td>599.4560</td>
+                        <td class="loss">-36.80 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>12</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-06-12 00:00:00</td>
+                        <td>2024-06-17 10:00:00</td>
+                        <td>600.0000</td>
+                        <td>595.9000</td>
+                        <td class="loss">-1.84 USDT</td>
+                        <td><span class="badge badge-danger">-0.68%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>13</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-06-17 11:00:00</td>
+                        <td>2024-07-04 11:00:00</td>
+                        <td>599.2000</td>
+                        <td>527.2960</td>
+                        <td class="loss">-32.16 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>14</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-07-04 12:00:00</td>
+                        <td>2024-07-29 16:00:00</td>
+                        <td>517.7000</td>
+                        <td>575.2000</td>
+                        <td class="profit">+26.19 USDT</td>
+                        <td><span class="badge badge-success">+11.11%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>15</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-07-29 17:00:00</td>
+                        <td>2024-08-04 15:00:00</td>
+                        <td>576.7000</td>
+                        <td>507.4960</td>
+                        <td class="loss">-31.44 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>16</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-08-04 16:00:00</td>
+                        <td>2024-08-05 04:00:00</td>
+                        <td>500.6000</td>
+                        <td>440.5280</td>
+                        <td class="loss">-27.67 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>17</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-08-05 05:00:00</td>
+                        <td>2024-08-24 03:00:00</td>
+                        <td>433.5000</td>
+                        <td>578.8000</td>
+                        <td class="profit">+68.01 USDT</td>
+                        <td><span class="badge badge-success">+33.52%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>18</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-08-24 04:00:00</td>
+                        <td>2024-09-02 05:00:00</td>
+                        <td>576.3000</td>
+                        <td>507.1440</td>
+                        <td class="loss">-32.51 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>19</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-09-02 07:00:00</td>
+                        <td>2024-09-06 18:00:00</td>
+                        <td>503.1000</td>
+                        <td>478.4000</td>
+                        <td class="loss">-11.71 USDT</td>
+                        <td><span class="badge badge-danger">-4.91%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>20</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-09-06 19:00:00</td>
+                        <td>2024-09-24 00:00:00</td>
+                        <td>482.3000</td>
+                        <td>603.1000</td>
+                        <td class="profit">+56.78 USDT</td>
+                        <td><span class="badge badge-success">+25.05%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>21</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-09-24 01:00:00</td>
+                        <td>2024-11-11 07:00:00</td>
+                        <td>604.0000</td>
+                        <td>615.9900</td>
+                        <td class="profit">+5.63 USDT</td>
+                        <td><span class="badge badge-success">+1.99%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>22</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-11-11 08:00:00</td>
+                        <td>2024-11-13 04:00:00</td>
+                        <td>622.7000</td>
+                        <td>605.9800</td>
+                        <td class="loss">-7.76 USDT</td>
+                        <td><span class="badge badge-danger">-2.69%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>23</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-11-13 05:00:00</td>
+                        <td>2024-12-04 16:00:00</td>
+                        <td>602.9900</td>
+                        <td>731.6800</td>
+                        <td class="profit">+60.05 USDT</td>
+                        <td><span class="badge badge-success">+21.34%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>24</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-12-04 17:00:00</td>
+                        <td>2024-12-14 13:00:00</td>
+                        <td>731.5700</td>
+                        <td>710.6500</td>
+                        <td class="loss">-9.76 USDT</td>
+                        <td><span class="badge badge-danger">-2.86%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>25</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-12-14 14:00:00</td>
+                        <td>2024-12-20 11:00:00</td>
+                        <td>715.3000</td>
+                        <td>629.4640</td>
+                        <td class="loss">-39.80 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>26</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-12-21 11:00:00</td>
+                        <td>2024-12-29 01:00:00</td>
+                        <td>676.9300</td>
+                        <td>714.8000</td>
+                        <td class="profit">+16.33 USDT</td>
+                        <td><span class="badge badge-success">+5.59%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>27</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2024-12-29 02:00:00</td>
+                        <td>2025-01-07 19:00:00</td>
+                        <td>715.1700</td>
+                        <td>696.9700</td>
+                        <td class="loss">-7.84 USDT</td>
+                        <td><span class="badge badge-danger">-2.54%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>28</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-01-07 20:00:00</td>
+                        <td>2025-01-23 03:00:00</td>
+                        <td>696.1700</td>
+                        <td>688.6400</td>
+                        <td class="loss">-3.25 USDT</td>
+                        <td><span class="badge badge-danger">-1.08%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>29</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-01-23 04:00:00</td>
+                        <td>2025-02-03 01:00:00</td>
+                        <td>685.8900</td>
+                        <td>603.5832</td>
+                        <td class="loss">-35.65 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>30</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-02-03 02:00:00</td>
+                        <td>2025-02-04 05:00:00</td>
+                        <td>542.1700</td>
+                        <td>575.9100</td>
+                        <td class="profit">+16.27 USDT</td>
+                        <td><span class="badge badge-success">+6.22%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>31</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-02-04 06:00:00</td>
+                        <td>2025-03-08 23:00:00</td>
+                        <td>582.3200</td>
+                        <td>593.1000</td>
+                        <td class="profit">+5.14 USDT</td>
+                        <td><span class="badge badge-success">+1.85%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>32</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-03-09 00:00:00</td>
+                        <td>2025-03-11 00:00:00</td>
+                        <td>592.3000</td>
+                        <td>521.2240</td>
+                        <td class="loss">-33.94 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>33</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-03-11 14:00:00</td>
+                        <td>2025-03-22 05:00:00</td>
+                        <td>542.9500</td>
+                        <td>629.7500</td>
+                        <td class="profit">+39.79 USDT</td>
+                        <td><span class="badge badge-success">+15.99%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>34</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-03-22 06:00:00</td>
+                        <td>2025-04-06 18:00:00</td>
+                        <td>632.2900</td>
+                        <td>556.4152</td>
+                        <td class="loss">-34.64 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>35</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-04-06 19:00:00</td>
+                        <td>2025-04-10 03:00:00</td>
+                        <td>558.8100</td>
+                        <td>575.2700</td>
+                        <td class="profit">+7.48 USDT</td>
+                        <td><span class="badge badge-success">+2.95%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>36</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-04-10 04:00:00</td>
+                        <td>2025-04-15 17:00:00</td>
+                        <td>577.3700</td>
+                        <td>583.5500</td>
+                        <td class="profit">+2.80 USDT</td>
+                        <td><span class="badge badge-success">+1.07%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>37</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-04-15 18:00:00</td>
+                        <td>2025-05-03 10:00:00</td>
+                        <td>583.6600</td>
+                        <td>595.3800</td>
+                        <td class="profit">+5.31 USDT</td>
+                        <td><span class="badge badge-success">+2.01%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>38</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-05-03 11:00:00</td>
+                        <td>2025-05-13 03:00:00</td>
+                        <td>596.3400</td>
+                        <td>641.9300</td>
+                        <td class="profit">+20.61 USDT</td>
+                        <td><span class="badge badge-success">+7.64%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>39</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-05-13 04:00:00</td>
+                        <td>2025-05-23 20:00:00</td>
+                        <td>648.1700</td>
+                        <td>662.8600</td>
+                        <td class="profit">+6.58 USDT</td>
+                        <td><span class="badge badge-success">+2.27%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>40</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-05-23 21:00:00</td>
+                        <td>2025-05-28 01:00:00</td>
+                        <td>662.2300</td>
+                        <td>683.4800</td>
+                        <td class="profit">+9.52 USDT</td>
+                        <td><span class="badge badge-success">+3.21%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>41</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-05-28 02:00:00</td>
+                        <td>2025-07-24 06:00:00</td>
+                        <td>683.6000</td>
+                        <td>749.4700</td>
+                        <td class="profit">+29.52 USDT</td>
+                        <td><span class="badge badge-success">+9.64%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>42</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-07-24 07:00:00</td>
+                        <td>2025-07-31 22:00:00</td>
+                        <td>759.0900</td>
+                        <td>787.1100</td>
+                        <td class="profit">+12.40 USDT</td>
+                        <td><span class="badge badge-success">+3.69%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>43</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-07-31 23:00:00</td>
+                        <td>2025-08-15 14:00:00</td>
+                        <td>783.1400</td>
+                        <td>827.2200</td>
+                        <td class="profit">+19.60 USDT</td>
+                        <td><span class="badge badge-success">+5.63%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>44</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-08-15 15:00:00</td>
+                        <td>2025-08-24 10:00:00</td>
+                        <td>818.6500</td>
+                        <td>862.4100</td>
+                        <td class="profit">+19.66 USDT</td>
+                        <td><span class="badge badge-success">+5.35%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>45</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-08-24 11:00:00</td>
+                        <td>2025-10-14 06:00:00</td>
+                        <td>861.5000</td>
+                        <td>1202.8200</td>
+                        <td class="profit">+153.54 USDT</td>
+                        <td><span class="badge badge-success">+39.62%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>46</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-10-14 07:00:00</td>
+                        <td>2025-10-17 08:00:00</td>
+                        <td>1195.3600</td>
+                        <td>1051.9168</td>
+                        <td class="loss">-64.93 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>47</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-10-17 09:00:00</td>
+                        <td>2025-10-23 14:00:00</td>
+                        <td>1038.9700</td>
+                        <td>1085.6300</td>
+                        <td class="profit">+21.38 USDT</td>
+                        <td><span class="badge badge-success">+4.49%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>48</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-10-23 15:00:00</td>
+                        <td>2025-11-02 17:00:00</td>
+                        <td>1129.9500</td>
+                        <td>1078.7400</td>
+                        <td class="loss">-22.55 USDT</td>
+                        <td><span class="badge badge-danger">-4.53%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>49</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-11-02 18:00:00</td>
+                        <td>2025-11-04 05:00:00</td>
+                        <td>1078.8100</td>
+                        <td>949.3528</td>
+                        <td class="loss">-57.00 USDT</td>
+                        <td><span class="badge badge-danger">-12.00%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>50</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-11-04 08:00:00</td>
+                        <td>2025-11-19 18:00:00</td>
+                        <td>949.1900</td>
+                        <td>877.0900</td>
+                        <td class="loss">-31.75 USDT</td>
+                        <td><span class="badge badge-danger">-7.60%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>51</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-11-19 19:00:00</td>
+                        <td>2025-11-20 18:00:00</td>
+                        <td>878.9000</td>
+                        <td>873.4100</td>
+                        <td class="loss">-2.41 USDT</td>
+                        <td><span class="badge badge-danger">-0.62%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>52</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-11-20 19:00:00</td>
+                        <td>2025-12-17 05:00:00</td>
+                        <td>880.4400</td>
+                        <td>858.8600</td>
+                        <td class="loss">-9.41 USDT</td>
+                        <td><span class="badge badge-danger">-2.45%</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>53</td>
+                        <td><strong>BNBUSDT</strong></td>
+                        <td>2025-12-17 06:00:00</td>
+                        <td>2025-12-31 23:59:59</td>
+                        <td>865.8800</td>
+                        <td>864.3000</td>
+                        <td class="loss">-0.68 USDT</td>
+                        <td><span class="badge badge-danger">-0.18%</span></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            Raport wygenerowany: 2026-01-18 13:58:53 | 
+            Backtest Engine v2.0
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+    "binance": {
+        "api_key": "xyzrc22e7KR5yuJyUvfZEikjY9tRpz62gVqPd0nzfjyHwXq3r8hFQF0DTk6p2ko2",
+        "api_secret": "Pp3epUZn0nDQSnZcocMfaDrQwgbvo2RUbAcXtVtdSxHWiADLcLNyhsq8VTBDxkoH",
+        "testnet": true,
+        "test_api_on_start": true
+    },
+    "mysql": {
+        "host": "localhost",
+        "user": "root",
+        "password": "",
+        "database": "menago_ram",
+        "port": 3306
+    },
+    "trades_table": "_binance_crypto_trades",
+    "history_bars": 50,
+    "currencies": [
+        {
+            "symbol": "BNBUSDT",
+            "table": "bnbusdt_1h",
+            "strategy": "BNBPineScriptStrategy",
+            "strategy_id": "BNB_PineScript",
+            "buy_quantity": 1,
+            "enabled": true,
+            "params": {
+                "num_falling": 5,
+                "allow_one_break": true,
+                "take_profit_perc": 4.0,
+                "stop_loss_perc": 12.0,
+                "red_candles_to_sell": 6,
+                "loss_lookback_bars": 6
+            }
+        },
+        {
+            "symbol": "XRPUSDT",
+            "table": "xrpusdt_1h",
+            "strategy": "XRPPineScriptStrategy",
+            "strategy_id": "XRP_Conservative",
+            "buy_quantity": 10,
+            "enabled": true,
+            "params": {
+                "num_falling": 6,
+                "allow_one_break": true,
+                "take_profit_perc": 12.0,
+                "stop_loss_perc": 5.0,
+                "red_candles_to_sell": 3,
+                "loss_lookback_bars": 1
+            }
+        },
+        {
+            "symbol": "XRPUSDT",
+            "table": "xrpusdt_1h",
+            "strategy": "XRPPineScriptStrategy",
+            "strategy_id": "XRP_Aggressive",
+            "buy_quantity": 15,
+            "enabled": false,
+            "params": {
+                "num_falling": 5,
+                "allow_one_break": false,
+                "take_profit_perc": 10.0,
+                "stop_loss_perc": 4.0,
+                "red_candles_to_sell": 2,
+                "loss_lookback_bars": 2
+            }
+        }
+    ]
+}

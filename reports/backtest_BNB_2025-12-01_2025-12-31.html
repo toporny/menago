@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raport Backtestingu - BNB PineScript Strategy</title>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header .period {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-card.positive .value {
+            color: #10b981;
+        }
+        
+        .stat-card.negative .value {
+            color: #ef4444;
+        }
+        
+        .section {
+            padding: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .param-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .param-item .param-name {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .param-item .param-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* Tabela transakcji */
+        .trades-container {
+            margin-top: 20px;
+        }
+        
+        .trade-row {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .trade-row:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .trade-header {
+            display: grid;
+            grid-template-columns: 50px 120px 180px 180px 120px 120px 120px 100px;
+            gap: 10px;
+            padding: 15px 20px;
+            cursor: pointer;
+            align-items: center;
+            background: #f8f9fa;
+            transition: background 0.2s ease;
+        }
+        
+        .trade-header:hover {
+            background: #e9ecef;
+        }
+        
+        .trade-header.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .trade-header div {
+            font-size: 0.9em;
+        }
+        
+        .trade-header .trade-number {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .trade-chart {
+            display: none;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .trade-chart.active {
+            display: block;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .profit {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .loss {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .expand-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .expand-icon.active {
+            transform: rotate(90deg);
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+            
+            .stat-card:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 BNB PineScript Strategy</h1>
+            <div class="period">
+                2025-12-01 → 2025-12-31 | Interwał: 1h
+            </div>
+        </div>
+        
+        <!-- Główne statystyki -->
+        <div class="stats-grid">
+            <div class="stat-card positive">
+                <div class="label">Zwrot</div>
+                <div class="value" style="color: green">+4.57%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Kapitał początkowy</div>
+                <div class="value">100.00 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Kapitał końcowy</div>
+                <div class="value">104.57 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Zysk/Strata</div>
+                <div class="value" style="color: green">+4.57 USDT</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Liczba transakcji</div>
+                <div class="value">2</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Współczynnik wygranych</div>
+                <div class="value" style="color: green">50.0%</div>
+            </div>
+            
+            <div class="stat-card negative">
+                <div class="label">Wygrane / Przegrane</div>
+                <div class="value">1 / 1</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="label">Risk/Reward Ratio</div>
+                <div class="value">26.07</div>
+            </div>
+        </div>
+        
+        <!-- Parametry strategii -->
+        <div class="section">
+            <h2 class="section-title">⚙️ Parametry Strategii</h2>
+            <div class="params-grid">
+
+                <div class="param-item">
+                    <div class="param-name">num_falling</div>
+                    <div class="param-value">5</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">allow_one_break</div>
+                    <div class="param-value">True</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">take_profit_perc</div>
+                    <div class="param-value">4.0</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">stop_loss_perc</div>
+                    <div class="param-value">6.0</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">red_candles_to_sell</div>
+                    <div class="param-value">6</div>
+                </div>
+
+                <div class="param-item">
+                    <div class="param-name">loss_lookback_bars</div>
+                    <div class="param-value">6</div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Transakcje z wykresami -->
+        <div class="section">
+            <h2 class="section-title">📈 Wszystkie Transakcje (2) - Kliknij aby zobaczyć wykres</h2>
+            <div class="trades-container">
+
+                <div class="trade-row">
+                    <div class="trade-header" onclick="toggleChart(1)">
+                        <div class="expand-icon" id="icon-1">▶</div>
+                        <div class="trade-number">#1</div>
+                        <div><strong>BNBUSDT</strong></div>
+                        <div>2025-12-01 14:00:00</div>
+                        <div>2025-12-17 05:00:00</div>
+                        <div>819.8600</div>
+                        <div>858.8600</div>
+                        <div class="profit">+4.76 USDT</div>
+                        <div><span class="badge badge-success">+4.76%</span></div>
+                    </div>
+                    <div class="trade-chart" id="chart-1">
+                        <div class="chart-container" id="chart-container-1"></div>
+                    </div>
+                    <script>
+                        var chartData1 = [{"time": 1764511200, "open": 896.45, "high": 897.89, "low": 890.23, "close": 893.91, "volume": 10627.8}, {"time": 1764514800, "open": 893.91, "high": 895.38, "low": 890.26, "close": 893.99, "volume": 4584.64}, {"time": 1764518400, "open": 894.0, "high": 899.75, "low": 893.87, "close": 899.12, "volume": 5951.7}, {"time": 1764522000, "open": 899.11, "high": 899.12, "low": 895.32, "close": 897.46, "volume": 3402.52}, {"time": 1764525600, "open": 897.46, "high": 897.48, "low": 892.85, "close": 895.9, "volume": 4437.43}, {"time": 1764529200, "open": 895.91, "high": 896.63, "low": 893.94, "close": 894.99, "volume": 1427.34}, {"time": 1764532800, "open": 895.0, "high": 897.0, "low": 892.4, "close": 895.32, "volume": 3463.89}, {"time": 1764536400, "open": 895.33, "high": 895.55, "low": 886.79, "close": 889.06, "volume": 6305.19}, {"time": 1764540000, "open": 889.07, "high": 890.11, "low": 885.61, "close": 888.37, "volume": 3028.24}, {"time": 1764543600, "open": 888.38, "high": 888.53, "low": 874.2, "close": 875.31, "volume": 8227.5}, {"time": 1764547200, "open": 875.3, "high": 877.12, "low": 834.3, "close": 834.5, "volume": 60097.1}, {"time": 1764550800, "open": 834.5, "high": 845.47, "low": 834.21, "close": 837.79, "volume": 18317.5}, {"time": 1764554400, "open": 837.82, "high": 842.51, "low": 834.04, "close": 836.01, "volume": 15731.7}, {"time": 1764558000, "open": 836.0, "high": 836.99, "low": 827.59, "close": 829.4, "volume": 19324.3}, {"time": 1764561600, "open": 829.39, "high": 829.66, "low": 821.88, "close": 823.17, "volume": 13363.1}, {"time": 1764565200, "open": 823.17, "high": 824.63, "low": 820.73, "close": 823.29, "volume": 9081.19}, {"time": 1764568800, "open": 823.3, "high": 829.98, "low": 822.55, "close": 828.03, "volume": 14200.3}, {"time": 1764572400, "open": 828.03, "high": 832.97, "low": 825.33, "close": 832.43, "volume": 8150.42}, {"time": 1764576000, "open": 832.44, "high": 833.39, "low": 827.7, "close": 829.91, "volume": 12399.7}, {"time": 1764579600, "open": 829.9, "high": 832.18, "low": 823.0, "close": 823.63, "volume": 18815.8}, {"time": 1764583200, "open": 823.63, "high": 828.04, "low": 823.63, "close": 828.0, "volume": 10176.4}, {"time": 1764586800, "open": 828.01, "high": 828.01, "low": 823.8, "close": 824.86, "volume": 12511.9}, {"time": 1764590400, "open": 824.86, "high": 824.95, "low": 814.42, "close": 821.43, "volume": 18343.3}, {"time": 1764594000, "open": 821.43, "high": 826.39, "low": 815.33, "close": 816.48, "volume": 14808.7}, {"time": 1764597600, "open": 816.48, "high": 824.99, "low": 815.9, "close": 819.86, "volume": 14599.0}, {"time": 1764601200, "open": 819.87, "high": 820.41, "low": 801.7, "close": 811.85, "volume": 30112.2}, {"time": 1764604800, "open": 811.86, "high": 816.51, "low": 808.41, "close": 810.11, "volume": 10719.2}, {"time": 1764608400, "open": 810.11, "high": 816.22, "low": 810.11, "close": 812.52, "volume": 6325.42}, {"time": 1764612000, "open": 812.53, "high": 818.86, "low": 812.05, "close": 817.31, "volume": 5860.78}, {"time": 1764615600, "open": 817.31, "high": 817.56, "low": 811.6, "close": 814.7, "volume": 3367.57}, {"time": 1764619200, "open": 814.69, "high": 821.11, "low": 814.61, "close": 817.31, "volume": 7187.52}, {"time": 1764622800, "open": 817.31, "high": 824.73, "low": 817.17, "close": 822.99, "volume": 7677.17}, {"time": 1764626400, "open": 823.0, "high": 830.22, "low": 823.0, "close": 826.9, "volume": 6088.03}, {"time": 1764630000, "open": 826.89, "high": 832.32, "low": 826.61, "close": 826.61, "volume": 5488.11}, {"time": 1764633600, "open": 826.6, "high": 827.8, "low": 823.8, "close": 826.3, "volume": 3778.99}, {"time": 1764637200, "open": 826.29, "high": 834.0, "low": 825.6, "close": 828.96, "volume": 6853.85}, {"time": 1764640800, "open": 828.96, "high": 833.57, "low": 826.58, "close": 827.62, "volume": 7853.37}, {"time": 1764644400, "open": 827.61, "high": 830.06, "low": 820.46, "close": 828.38, "volume": 9503.68}, {"time": 1764648000, "open": 828.39, "high": 832.69, "low": 828.2, "close": 832.58, "volume": 5251.48}, {"time": 1764651600, "open": 832.58, "high": 833.0, "low": 828.59, "close": 831.72, "volume": 6001.32}, {"time": 1764655200, "open": 831.71, "high": 832.94, "low": 829.25, "close": 831.74, "volume": 3634.62}, {"time": 1764658800, "open": 831.74, "high": 831.9, "low": 828.7, "close": 830.94, "volume": 5082.4}, {"time": 1764662400, "open": 830.93, "high": 831.24, "low": 825.25, "close": 829.05, "volume": 11556.8}, {"time": 1764666000, "open": 829.05, "high": 837.4, "low": 828.84, "close": 836.2, "volume": 11612.2}, {"time": 1764669600, "open": 836.2, "high": 843.21, "low": 834.02, "close": 840.97, "volume": 12476.0}, {"time": 1764673200, "open": 840.96, "high": 845.3, "low": 839.42, "close": 843.23, "volume": 7008.01}, {"time": 1764676800, "open": 843.23, "high": 843.7, "low": 839.74, "close": 841.6, "volume": 7251.05}, {"time": 1764680400, "open": 841.59, "high": 846.85, "low": 839.81, "close": 845.77, "volume": 8655.92}, {"time": 1764684000, "open": 845.77, "high": 860.22, "low": 845.14, "close": 859.59, "volume": 22987.1}, {"time": 1764687600, "open": 859.59, "high": 875.6, "low": 858.61, "close": 871.4, "volume": 33633.9}, {"time": 1764691200, "open": 871.39, "high": 875.93, "low": 865.23, "close": 872.8, "volume": 15420.8}, {"time": 1764694800, "open": 872.8, "high": 881.03, "low": 870.83, "close": 876.93, "volume": 11128.2}, {"time": 1764698400, "open": 876.92, "high": 884.99, "low": 876.7, "close": 880.89, "volume": 10106.3}, {"time": 1764702000, "open": 880.88, "high": 885.0, "low": 879.15, "close": 882.58, "volume": 7949.68}, {"time": 1764705600, "open": 882.57, "high": 882.9, "low": 872.6, "close": 875.8, "volume": 13837.9}, {"time": 1764709200, "open": 875.8, "high": 879.3, "low": 875.33, "close": 877.91, "volume": 3174.51}, {"time": 1764712800, "open": 877.9, "high": 881.96, "low": 877.87, "close": 880.3, "volume": 4138.22}, {"time": 1764716400, "open": 880.3, "high": 881.36, "low": 875.98, "close": 876.61, "volume": 4253.31}, {"time": 1764720000, "open": 876.6, "high": 879.0, "low": 873.6, "close": 878.51, "volume": 5017.97}, {"time": 1764723600, "open": 878.51, "high": 886.57, "low": 878.25, "close": 883.42, "volume": 9370.87}, {"time": 1764727200, "open": 883.41, "high": 889.56, "low": 881.4, "close": 887.14, "volume": 11404.5}, {"time": 1764730800, "open": 887.15, "high": 889.51, "low": 885.62, "close": 887.82, "volume": 6601.74}, {"time": 1764734400, "open": 887.81, "high": 895.0, "low": 887.37, "close": 894.86, "volume": 7880.44}, {"time": 1764738000, "open": 894.87, "high": 902.07, "low": 894.01, "close": 901.8, "volume": 15309.4}, {"time": 1764741600, "open": 901.8, "high": 910.57, "low": 896.3, "close": 898.83, "volume": 23867.4}, {"time": 1764745200, "open": 898.83, "high": 899.79, "low": 894.17, "close": 896.55, "volume": 9625.67}, {"time": 1764748800, "open": 896.55, "high": 897.57, "low": 893.6, "close": 896.05, "volume": 4894.03}, {"time": 1764752400, "open": 896.05, "high": 901.59, "low": 894.48, "close": 900.15, "volume": 5374.38}, {"time": 1764756000, "open": 900.15, "high": 901.0, "low": 895.01, "close": 896.84, "volume": 5337.79}, {"time": 1764759600, "open": 896.85, "high": 899.3, "low": 893.57, "close": 898.92, "volume": 5684.63}, {"time": 1764763200, "open": 898.92, "high": 903.48, "low": 898.13, "close": 901.33, "volume": 7897.04}, {"time": 1764766800, "open": 901.34, "high": 905.48, "low": 900.57, "close": 900.95, "volume": 6966.15}, {"time": 1764770400, "open": 900.95, "high": 906.19, "low": 887.79, "close": 895.58, "volume": 28831.7}, {"time": 1764774000, "open": 895.58, "high": 901.5, "low": 891.34, "close": 897.2, "volume": 11075.6}, {"time": 1764777600, "open": 897.2, "high": 903.36, "low": 892.85, "close": 899.06, "volume": 8104.22}, {"time": 1764781200, "open": 899.07, "high": 907.74, "low": 898.37, "close": 907.07, "volume": 8369.65}, {"time": 1764784800, "open": 907.06, "high": 908.0, "low": 900.81, "close": 902.5, "volume": 5411.18}, {"time": 1764788400, "open": 902.51, "high": 907.21, "low": 902.0, "close": 906.99, "volume": 2534.88}, {"time": 1764792000, "open": 906.99, "high": 911.82, "low": 905.0, "close": 907.99, "volume": 6783.66}, {"time": 1764795600, "open": 908.0, "high": 917.06, "low": 907.11, "close": 916.61, "volume": 7113.48}, {"time": 1764799200, "open": 916.61, "high": 920.0, "low": 911.9, "close": 918.83, "volume": 10433.0}, {"time": 1764802800, "open": 918.83, "high": 922.63, "low": 916.8, "close": 920.76, "volume": 13420.5}, {"time": 1764806400, "open": 920.77, "high": 925.9, "low": 914.89, "close": 922.48, "volume": 16473.4}, {"time": 1764810000, "open": 922.48, "high": 928.24, "low": 919.6, "close": 919.9, "volume": 10509.9}, {"time": 1764813600, "open": 919.9, "high": 925.88, "low": 918.8, "close": 921.86, "volume": 8200.75}, {"time": 1764817200, "open": 921.85, "high": 922.82, "low": 915.94, "close": 916.8, "volume": 6574.69}, {"time": 1764820800, "open": 916.81, "high": 919.12, "low": 912.61, "close": 913.17, "volume": 6282.05}, {"time": 1764824400, "open": 913.17, "high": 913.45, "low": 906.3, "close": 908.07, "volume": 9632.6}, {"time": 1764828000, "open": 908.08, "high": 915.34, "low": 908.0, "close": 913.41, "volume": 7202.53}, {"time": 1764831600, "open": 913.42, "high": 913.78, "low": 909.58, "close": 910.79, "volume": 5713.27}, {"time": 1764835200, "open": 910.79, "high": 911.9, "low": 907.36, "close": 908.5, "volume": 4783.5}, {"time": 1764838800, "open": 908.5, "high": 913.17, "low": 908.4, "close": 911.01, "volume": 4816.92}, {"time": 1764842400, "open": 911.0, "high": 912.0, "low": 908.78, "close": 909.93, "volume": 3528.41}, {"time": 1764846000, "open": 909.93, "high": 910.89, "low": 907.07, "close": 908.88, "volume": 3076.61}, {"time": 1764849600, "open": 908.88, "high": 910.23, "low": 907.6, "close": 908.7, "volume": 2515.58}, {"time": 1764853200, "open": 908.7, "high": 909.42, "low": 902.48, "close": 903.13, "volume": 6473.29}, {"time": 1764856800, "open": 903.13, "high": 910.53, "low": 901.78, "close": 902.69, "volume": 8056.08}, {"time": 1764860400, "open": 902.69, "high": 916.13, "low": 902.47, "close": 910.76, "volume": 10519.7}, {"time": 1764864000, "open": 910.76, "high": 912.43, "low": 904.9, "close": 906.08, "volume": 7714.24}, {"time": 1764867600, "open": 906.07, "high": 906.98, "low": 898.09, "close": 905.69, "volume": 7951.24}, {"time": 1764871200, "open": 905.7, "high": 905.9, "low": 898.53, "close": 899.69, "volume": 5964.06}, {"time": 1764874800, "open": 899.69, "high": 900.26, "low": 886.79, "close": 898.52, "volume": 14593.1}, {"time": 1764878400, "open": 898.52, "high": 901.8, "low": 896.0, "close": 901.45, "volume": 6402.78}, {"time": 1764882000, "open": 901.46, "high": 902.91, "low": 897.15, "close": 897.4, "volume": 4090.88}, {"time": 1764885600, "open": 897.4, "high": 904.18, "low": 897.4, "close": 902.19, "volume": 2717.99}, {"time": 1764889200, "open": 902.19, "high": 902.65, "low": 899.43, "close": 899.92, "volume": 1986.0}, {"time": 1764892800, "open": 899.92, "high": 904.4, "low": 899.4, "close": 902.77, "volume": 2369.99}, {"time": 1764896400, "open": 902.77, "high": 907.06, "low": 901.72, "close": 903.64, "volume": 3144.45}, {"time": 1764900000, "open": 903.64, "high": 906.6, "low": 901.8, "close": 904.64, "volume": 2810.71}, {"time": 1764903600, "open": 904.65, "high": 906.72, "low": 900.22, "close": 901.81, "volume": 2806.29}, {"time": 1764907200, "open": 901.8, "high": 905.6, "low": 900.29, "close": 902.2, "volume": 3910.69}, {"time": 1764910800, "open": 902.2, "high": 903.92, "low": 898.37, "close": 899.82, "volume": 3852.13}, {"time": 1764914400, "open": 899.82, "high": 904.46, "low": 899.81, "close": 904.38, "volume": 3048.1}, {"time": 1764918000, "open": 904.38, "high": 907.92, "low": 901.19, "close": 901.65, "volume": 4871.61}, {"time": 1764921600, "open": 901.64, "high": 902.32, "low": 897.43, "close": 899.49, "volume": 3866.9}, {"time": 1764925200, "open": 899.49, "high": 899.5, "low": 889.53, "close": 890.94, "volume": 9199.36}, {"time": 1764928800, "open": 890.93, "high": 896.39, "low": 890.83, "close": 894.64, "volume": 4827.41}, {"time": 1764932400, "open": 894.65, "high": 895.92, "low": 890.41, "close": 894.09, "volume": 3921.04}, {"time": 1764936000, "open": 894.09, "high": 894.1, "low": 891.46, "close": 892.8, "volume": 3277.24}, {"time": 1764939600, "open": 892.8, "high": 894.5, "low": 884.88, "close": 886.58, "volume": 10644.1}, {"time": 1764943200, "open": 886.58, "high": 890.8, "low": 884.59, "close": 887.73, "volume": 7582.02}, {"time": 1764946800, "open": 887.73, "high": 900.18, "low": 887.49, "close": 888.87, "volume": 15037.7}, {"time": 1764950400, "open": 888.86, "high": 889.39, "low": 870.18, "close": 878.92, "volume": 22584.5}, {"time": 1764954000, "open": 878.92, "high": 884.14, "low": 876.0, "close": 882.96, "volume": 7787.52}, {"time": 1764957600, "open": 882.96, "high": 887.27, "low": 877.11, "close": 877.64, "volume": 6417.81}, {"time": 1764961200, "open": 877.64, "high": 885.54, "low": 874.9, "close": 883.69, "volume": 6144.46}, {"time": 1764964800, "open": 883.69, "high": 885.15, "low": 879.87, "close": 880.41, "volume": 3258.89}, {"time": 1764968400, "open": 880.41, "high": 883.1, "low": 879.37, "close": 880.69, "volume": 2434.99}, {"time": 1764972000, "open": 880.7, "high": 884.39, "low": 878.5, "close": 882.7, "volume": 1888.48}, {"time": 1764975600, "open": 882.71, "high": 884.56, "low": 878.7, "close": 883.57, "volume": 1807.67}, {"time": 1764979200, "open": 883.57, "high": 885.68, "low": 881.11, "close": 885.41, "volume": 2773.7}, {"time": 1764982800, "open": 885.42, "high": 886.74, "low": 883.15, "close": 884.61, "volume": 2413.75}, {"time": 1764986400, "open": 884.62, "high": 884.87, "low": 881.7, "close": 884.82, "volume": 2544.31}, {"time": 1764990000, "open": 884.82, "high": 888.52, "low": 884.71, "close": 887.54, "volume": 3737.72}, {"time": 1764993600, "open": 887.53, "high": 888.1, "low": 883.84, "close": 884.3, "volume": 1775.54}, {"time": 1764997200, "open": 884.31, "high": 885.1, "low": 882.23, "close": 883.39, "volume": 2253.0}, {"time": 1765000800, "open": 883.39, "high": 884.69, "low": 881.8, "close": 884.69, "volume": 2727.47}, {"time": 1765004400, "open": 884.7, "high": 886.53, "low": 883.15, "close": 884.76, "volume": 2452.48}, {"time": 1765008000, "open": 884.76, "high": 884.76, "low": 878.01, "close": 878.4, "volume": 3684.36}, {"time": 1765011600, "open": 878.4, "high": 883.56, "low": 878.24, "close": 882.83, "volume": 2967.11}, {"time": 1765015200, "open": 882.83, "high": 884.79, "low": 882.12, "close": 883.38, "volume": 2894.63}, {"time": 1765018800, "open": 883.38, "high": 885.1, "low": 883.03, "close": 883.58, "volume": 2431.89}, {"time": 1765022400, "open": 883.58, "high": 885.37, "low": 883.17, "close": 883.75, "volume": 4003.41}, {"time": 1765026000, "open": 883.74, "high": 889.97, "low": 883.51, "close": 889.59, "volume": 3744.81}, {"time": 1765029600, "open": 889.6, "high": 896.91, "low": 887.31, "close": 894.61, "volume": 9066.18}, {"time": 1765033200, "open": 894.61, "high": 894.99, "low": 888.31, "close": 890.28, "volume": 4325.02}, {"time": 1765036800, "open": 890.29, "high": 897.9, "low": 889.41, "close": 895.21, "volume": 5862.85}, {"time": 1765040400, "open": 895.21, "high": 895.39, "low": 891.79, "close": 893.75, "volume": 3759.12}, {"time": 1765044000, "open": 893.75, "high": 893.84, "low": 890.33, "close": 891.2, "volume": 2490.6}, {"time": 1765047600, "open": 891.19, "high": 892.17, "low": 888.15, "close": 889.57, "volume": 4801.07}, {"time": 1765051200, "open": 889.57, "high": 894.95, "low": 889.57, "close": 894.21, "volume": 3325.29}, {"time": 1765054800, "open": 894.2, "high": 895.73, "low": 893.0, "close": 894.36, "volume": 2781.2}, {"time": 1765058400, "open": 894.35, "high": 895.2, "low": 891.17, "close": 891.72, "volume": 2508.35}, {"time": 1765062000, "open": 891.73, "high": 892.77, "low": 889.3, "close": 890.38, "volume": 1966.12}, {"time": 1765065600, "open": 890.38, "high": 893.71, "low": 889.84, "close": 893.26, "volume": 2145.16}, {"time": 1765069200, "open": 893.26, "high": 894.32, "low": 892.2, "close": 893.01, "volume": 1188.37}, {"time": 1765072800, "open": 893.01, "high": 896.85, "low": 893.0, "close": 896.4, "volume": 3682.8}, {"time": 1765076400, "open": 896.4, "high": 898.22, "low": 894.79, "close": 897.92, "volume": 3445.84}, {"time": 1765080000, "open": 897.92, "high": 898.0, "low": 895.21, "close": 895.91, "volume": 1976.0}, {"time": 1765083600, "open": 895.9, "high": 896.5, "low": 893.11, "close": 894.13, "volume": 2310.91}, {"time": 1765087200, "open": 894.14, "high": 896.82, "low": 893.93, "close": 895.21, "volume": 2431.4}, {"time": 1765090800, "open": 895.21, "high": 895.56, "low": 891.0, "close": 891.52, "volume": 3376.79}, {"time": 1765094400, "open": 891.52, "high": 893.39, "low": 888.97, "close": 891.13, "volume": 3651.31}, {"time": 1765098000, "open": 891.13, "high": 891.69, "low": 886.79, "close": 887.04, "volume": 3946.16}, {"time": 1765101600, "open": 887.05, "high": 891.69, "low": 886.57, "close": 889.62, "volume": 3293.48}, {"time": 1765105200, "open": 889.62, "high": 891.0, "low": 887.4, "close": 887.88, "volume": 3274.01}, {"time": 1765108800, "open": 887.88, "high": 893.89, "low": 887.65, "close": 892.99, "volume": 2951.4}, {"time": 1765112400, "open": 892.99, "high": 893.36, "low": 884.8, "close": 886.8, "volume": 5215.43}, {"time": 1765116000, "open": 886.79, "high": 887.5, "low": 870.23, "close": 873.66, "volume": 20077.4}, {"time": 1765119600, "open": 873.66, "high": 892.58, "low": 870.7, "close": 890.3, "volume": 17416.8}, {"time": 1765123200, "open": 890.3, "high": 894.83, "low": 886.6, "close": 894.32, "volume": 6080.67}, {"time": 1765126800, "open": 894.32, "high": 903.84, "low": 890.81, "close": 899.3, "volume": 17599.1}, {"time": 1765130400, "open": 899.31, "high": 906.0, "low": 899.3, "close": 901.72, "volume": 5127.27}, {"time": 1765134000, "open": 901.73, "high": 903.8, "low": 900.18, "close": 903.8, "volume": 2359.45}, {"time": 1765137600, "open": 903.8, "high": 905.21, "low": 902.96, "close": 903.75, "volume": 2047.68}, {"time": 1765141200, "open": 903.74, "high": 903.74, "low": 893.23, "close": 896.25, "volume": 5074.6}, {"time": 1765144800, "open": 896.24, "high": 896.24, "low": 881.08, "close": 889.03, "volume": 10194.0}, {"time": 1765148400, "open": 889.01, "high": 895.1, "low": 886.94, "close": 894.37, "volume": 3022.77}, {"time": 1765152000, "open": 894.38, "high": 898.62, "low": 891.12, "close": 896.36, "volume": 4185.9}, {"time": 1765155600, "open": 896.37, "high": 909.68, "low": 895.72, "close": 902.39, "volume": 8149.31}, {"time": 1765159200, "open": 902.4, "high": 903.49, "low": 899.44, "close": 902.66, "volume": 4091.92}, {"time": 1765162800, "open": 902.67, "high": 903.2, "low": 899.9, "close": 902.01, "volume": 3930.17}, {"time": 1765166400, "open": 902.02, "high": 905.8, "low": 900.57, "close": 903.34, "volume": 4471.39}, {"time": 1765170000, "open": 903.34, "high": 903.46, "low": 900.42, "close": 902.26, "volume": 3354.29}, {"time": 1765173600, "open": 902.26, "high": 904.4, "low": 902.0, "close": 902.76, "volume": 2476.89}, {"time": 1765177200, "open": 902.76, "high": 905.84, "low": 900.9, "close": 903.1, "volume": 4970.08}, {"time": 1765180800, "open": 903.1, "high": 907.2, "low": 902.62, "close": 906.5, "volume": 3081.19}, {"time": 1765184400, "open": 906.5, "high": 912.65, "low": 906.31, "close": 909.85, "volume": 7010.45}, {"time": 1765188000, "open": 909.84, "high": 910.95, "low": 907.97, "close": 909.89, "volume": 3315.23}, {"time": 1765191600, "open": 909.89, "high": 910.12, "low": 904.79, "close": 905.93, "volume": 4527.34}, {"time": 1765195200, "open": 905.93, "high": 908.56, "low": 904.22, "close": 908.24, "volume": 4039.22}, {"time": 1765198800, "open": 908.24, "high": 911.44, "low": 906.49, "close": 910.36, "volume": 5691.77}, {"time": 1765202400, "open": 910.37, "high": 913.29, "low": 904.15, "close": 904.46, "volume": 11444.5}, {"time": 1765206000, "open": 904.47, "high": 906.97, "low": 896.33, "close": 896.56, "volume": 12790.6}, {"time": 1765209600, "open": 896.57, "high": 900.81, "low": 892.77, "close": 894.32, "volume": 7755.6}, {"time": 1765213200, "open": 894.31, "high": 897.76, "low": 891.75, "close": 896.59, "volume": 4851.48}, {"time": 1765216800, "open": 896.6, "high": 898.36, "low": 888.93, "close": 891.1, "volume": 5513.56}, {"time": 1765220400, "open": 891.1, "high": 897.18, "low": 891.02, "close": 894.78, "volume": 2777.73}, {"time": 1765224000, "open": 894.78, "high": 902.0, "low": 894.75, "close": 900.94, "volume": 3503.52}, {"time": 1765227600, "open": 900.95, "high": 905.0, "low": 898.93, "close": 904.3, "volume": 4044.15}, {"time": 1765231200, "open": 904.3, "high": 904.6, "low": 897.95, "close": 899.52, "volume": 2691.61}, {"time": 1765234800, "open": 899.52, "high": 900.61, "low": 896.31, "close": 897.12, "volume": 2686.23}, {"time": 1765238400, "open": 897.13, "high": 899.74, "low": 895.82, "close": 896.12, "volume": 2447.24}, {"time": 1765242000, "open": 896.12, "high": 896.86, "low": 890.77, "close": 892.19, "volume": 4729.3}, {"time": 1765245600, "open": 892.2, "high": 895.06, "low": 891.23, "close": 891.7, "volume": 3956.03}, {"time": 1765249200, "open": 891.71, "high": 894.93, "low": 888.16, "close": 894.04, "volume": 5323.15}, {"time": 1765252800, "open": 894.05, "high": 896.26, "low": 890.21, "close": 891.01, "volume": 4722.12}, {"time": 1765256400, "open": 891.01, "high": 892.38, "low": 888.77, "close": 889.09, "volume": 4140.12}, {"time": 1765260000, "open": 889.09, "high": 890.49, "low": 884.54, "close": 887.61, "volume": 11645.9}, {"time": 1765263600, "open": 887.61, "high": 890.13, "low": 887.2, "close": 889.16, "volume": 2915.15}, {"time": 1765267200, "open": 889.18, "high": 889.19, "low": 886.16, "close": 887.75, "volume": 7620.29}, {"time": 1765270800, "open": 887.75, "high": 887.89, "low": 884.81, "close": 885.78, "volume": 4778.06}, {"time": 1765274400, "open": 885.78, "high": 888.39, "low": 883.58, "close": 886.88, "volume": 4968.79}, {"time": 1765278000, "open": 886.88, "high": 887.75, "low": 884.87, "close": 887.16, "volume": 3113.57}, {"time": 1765281600, "open": 887.17, "high": 889.21, "low": 885.73, "close": 888.3, "volume": 4736.16}, {"time": 1765285200, "open": 888.3, "high": 889.18, "low": 881.78, "close": 883.99, "volume": 7454.75}, {"time": 1765288800, "open": 884.0, "high": 886.03, "low": 882.15, "close": 885.4, "volume": 5082.98}, {"time": 1765292400, "open": 885.4, "high": 908.9, "low": 885.01, "close": 907.67, "volume": 26421.6}, {"time": 1765296000, "open": 907.67, "high": 926.96, "low": 907.67, "close": 923.02, "volume": 41510.5}, {"time": 1765299600, "open": 923.02, "high": 928.0, "low": 915.65, "close": 918.29, "volume": 20901.8}, {"time": 1765303200, "open": 918.3, "high": 920.53, "low": 914.61, "close": 916.73, "volume": 8668.86}, {"time": 1765306800, "open": 916.73, "high": 917.19, "low": 913.15, "close": 914.21, "volume": 5586.05}, {"time": 1765310400, "open": 914.21, "high": 914.4, "low": 904.13, "close": 908.5, "volume": 8122.99}, {"time": 1765314000, "open": 908.5, "high": 909.59, "low": 893.97, "close": 899.45, "volume": 10223.6}, {"time": 1765317600, "open": 899.45, "high": 904.47, "low": 899.42, "close": 902.91, "volume": 5416.3}, {"time": 1765321200, "open": 902.9, "high": 903.04, "low": 897.16, "close": 897.3, "volume": 5160.35}, {"time": 1765324800, "open": 897.3, "high": 898.96, "low": 891.2, "close": 891.33, "volume": 11716.6}, {"time": 1765328400, "open": 891.33, "high": 892.66, "low": 887.26, "close": 890.64, "volume": 12086.9}, {"time": 1765332000, "open": 890.63, "high": 893.21, "low": 888.34, "close": 890.85, "volume": 4486.36}, {"time": 1765335600, "open": 890.84, "high": 891.8, "low": 889.5, "close": 890.51, "volume": 5729.15}, {"time": 1765339200, "open": 890.51, "high": 893.0, "low": 889.1, "close": 890.28, "volume": 4643.09}, {"time": 1765342800, "open": 890.27, "high": 893.43, "low": 889.22, "close": 892.98, "volume": 5905.37}, {"time": 1765346400, "open": 893.0, "high": 897.05, "low": 892.1, "close": 894.31, "volume": 6479.96}, {"time": 1765350000, "open": 894.31, "high": 894.31, "low": 891.14, "close": 894.19, "volume": 3159.81}, {"time": 1765353600, "open": 894.2, "high": 895.1, "low": 892.17, "close": 892.17, "volume": 2764.5}, {"time": 1765357200, "open": 892.18, "high": 894.1, "low": 889.02, "close": 892.86, "volume": 7333.13}, {"time": 1765360800, "open": 892.86, "high": 896.16, "low": 886.98, "close": 887.8, "volume": 11703.0}, {"time": 1765364400, "open": 887.8, "high": 889.31, "low": 884.53, "close": 886.67, "volume": 6094.01}, {"time": 1765368000, "open": 886.67, "high": 888.16, "low": 884.27, "close": 887.86, "volume": 6583.35}, {"time": 1765371600, "open": 887.85, "high": 892.12, "low": 887.69, "close": 891.6, "volume": 7508.44}, {"time": 1765375200, "open": 891.59, "high": 892.09, "low": 887.55, "close": 890.05, "volume": 6589.27}, {"time": 1765378800, "open": 890.05, "high": 892.6, "low": 887.34, "close": 891.4, "volume": 6128.31}, {"time": 1765382400, "open": 891.39, "high": 897.8, "low": 889.73, "close": 896.48, "volume": 10813.0}, {"time": 1765386000, "open": 896.47, "high": 897.74, "low": 893.65, "close": 896.3, "volume": 5419.14}, {"time": 1765389600, "open": 896.29, "high": 902.92, "low": 894.19, "close": 898.63, "volume": 8988.39}, {"time": 1765393200, "open": 898.64, "high": 905.17, "low": 892.52, "close": 901.95, "volume": 17011.7}, {"time": 1765396800, "open": 901.96, "high": 915.0, "low": 897.25, "close": 898.84, "volume": 17439.1}, {"time": 1765400400, "open": 898.88, "high": 902.32, "low": 894.13, "close": 896.94, "volume": 8050.25}, {"time": 1765404000, "open": 896.94, "high": 900.47, "low": 890.72, "close": 898.3, "volume": 6218.79}, {"time": 1765407600, "open": 898.3, "high": 901.2, "low": 892.72, "close": 893.43, "volume": 3481.4}, {"time": 1765411200, "open": 893.43, "high": 894.7, "low": 881.13, "close": 883.61, "volume": 8894.25}, {"time": 1765414800, "open": 883.6, "high": 884.12, "low": 873.57, "close": 876.6, "volume": 14011.7}, {"time": 1765418400, "open": 876.6, "high": 876.8, "low": 863.47, "close": 866.99, "volume": 20572.5}, {"time": 1765422000, "open": 866.99, "high": 869.69, "low": 861.46, "close": 868.19, "volume": 10044.4}, {"time": 1765425600, "open": 868.19, "high": 871.99, "low": 864.84, "close": 870.99, "volume": 7787.83}, {"time": 1765429200, "open": 871.0, "high": 873.86, "low": 867.0, "close": 872.27, "volume": 7092.1}, {"time": 1765432800, "open": 872.26, "high": 873.08, "low": 868.4, "close": 869.98, "volume": 6853.44}, {"time": 1765436400, "open": 869.98, "high": 870.99, "low": 866.29, "close": 866.88, "volume": 5206.79}, {"time": 1765440000, "open": 866.87, "high": 867.18, "low": 862.25, "close": 865.12, "volume": 11030.1}, {"time": 1765443600, "open": 865.12, "high": 868.36, "low": 864.7, "close": 866.88, "volume": 4725.39}, {"time": 1765447200, "open": 866.89, "high": 867.79, "low": 864.93, "close": 865.91, "volume": 2980.66}, {"time": 1765450800, "open": 865.91, "high": 869.0, "low": 865.42, "close": 866.61, "volume": 3407.88}, {"time": 1765454400, "open": 866.6, "high": 868.79, "low": 864.6, "close": 866.32, "volume": 5400.18}, {"time": 1765458000, "open": 866.32, "high": 868.66, "low": 866.11, "close": 867.84, "volume": 4833.06}, {"time": 1765461600, "open": 867.84, "high": 869.0, "low": 859.54, "close": 861.62, "volume": 12277.7}, {"time": 1765465200, "open": 861.62, "high": 870.9, "low": 860.7, "close": 865.91, "volume": 10045.3}, {"time": 1765468800, "open": 865.9, "high": 869.54, "low": 861.09, "close": 866.48, "volume": 5482.28}, {"time": 1765472400, "open": 866.48, "high": 871.55, "low": 865.67, "close": 869.2, "volume": 4720.15}, {"time": 1765476000, "open": 869.21, "high": 881.21, "low": 868.5, "close": 875.4, "volume": 7286.46}, {"time": 1765479600, "open": 875.4, "high": 881.1, "low": 873.7, "close": 876.05, "volume": 5278.25}, {"time": 1765483200, "open": 876.05, "high": 880.95, "low": 875.83, "close": 880.49, "volume": 5039.5}, {"time": 1765486800, "open": 880.49, "high": 891.5, "low": 879.7, "close": 888.42, "volume": 9692.09}, {"time": 1765490400, "open": 888.43, "high": 890.53, "low": 883.36, "close": 884.21, "volume": 5143.06}, {"time": 1765494000, "open": 884.21, "high": 889.1, "low": 883.1, "close": 885.91, "volume": 4671.79}, {"time": 1765497600, "open": 885.92, "high": 888.0, "low": 880.0, "close": 880.24, "volume": 5403.27}, {"time": 1765501200, "open": 880.25, "high": 889.08, "low": 880.25, "close": 886.51, "volume": 5322.7}, {"time": 1765504800, "open": 886.51, "high": 892.91, "low": 885.88, "close": 892.65, "volume": 4144.5}, {"time": 1765508400, "open": 892.66, "high": 896.07, "low": 889.71, "close": 892.42, "volume": 5431.08}, {"time": 1765512000, "open": 892.41, "high": 892.67, "low": 888.56, "close": 888.96, "volume": 3562.33}, {"time": 1765515600, "open": 888.96, "high": 891.42, "low": 886.27, "close": 891.08, "volume": 4290.43}, {"time": 1765519200, "open": 891.08, "high": 894.15, "low": 891.03, "close": 891.24, "volume": 4197.83}, {"time": 1765522800, "open": 891.23, "high": 891.53, "low": 888.6, "close": 889.25, "volume": 4307.01}, {"time": 1765526400, "open": 889.26, "high": 889.48, "low": 885.24, "close": 886.79, "volume": 5237.2}, {"time": 1765530000, "open": 886.8, "high": 887.8, "low": 885.16, "close": 887.51, "volume": 2803.03}, {"time": 1765533600, "open": 887.51, "high": 888.2, "low": 885.0, "close": 885.07, "volume": 3894.58}, {"time": 1765537200, "open": 885.07, "high": 886.23, "low": 883.5, "close": 886.09, "volume": 4857.65}, {"time": 1765540800, "open": 886.08, "high": 887.99, "low": 885.16, "close": 887.92, "volume": 2450.18}, {"time": 1765544400, "open": 887.91, "high": 888.86, "low": 886.31, "close": 887.79, "volume": 2876.62}, {"time": 1765548000, "open": 887.8, "high": 892.31, "low": 887.3, "close": 891.35, "volume": 6926.2}, {"time": 1765551600, "open": 891.35, "high": 891.35, "low": 872.37, "close": 874.18, "volume": 17123.5}, {"time": 1765555200, "open": 874.18, "high": 879.49, "low": 870.58, "close": 875.94, "volume": 10914.1}, {"time": 1765558800, "open": 875.94, "high": 880.3, "low": 873.85, "close": 875.3, "volume": 4390.26}, {"time": 1765562400, "open": 875.3, "high": 882.11, "low": 874.5, "close": 879.95, "volume": 4130.68}, {"time": 1765566000, "open": 879.96, "high": 880.0, "low": 875.2, "close": 877.35, "volume": 2088.21}, {"time": 1765569600, "open": 877.35, "high": 878.1, "low": 875.2, "close": 877.09, "volume": 1779.43}, {"time": 1765573200, "open": 877.1, "high": 879.7, "low": 876.44, "close": 878.6, "volume": 1364.81}, {"time": 1765576800, "open": 878.61, "high": 881.81, "low": 878.47, "close": 881.59, "volume": 2024.98}, {"time": 1765580400, "open": 881.6, "high": 882.66, "low": 881.4, "close": 881.58, "volume": 1119.93}, {"time": 1765584000, "open": 881.59, "high": 883.51, "low": 880.7, "close": 881.07, "volume": 3634.5}, {"time": 1765587600, "open": 881.06, "high": 882.18, "low": 880.32, "close": 881.91, "volume": 3071.62}, {"time": 1765591200, "open": 881.91, "high": 885.4, "low": 881.91, "close": 883.84, "volume": 2020.13}, {"time": 1765594800, "open": 883.85, "high": 887.63, "low": 883.71, "close": 887.35, "volume": 2435.92}, {"time": 1765598400, "open": 887.34, "high": 887.8, "low": 885.37, "close": 886.3, "volume": 2602.6}, {"time": 1765602000, "open": 886.31, "high": 887.2, "low": 884.8, "close": 885.71, "volume": 2120.7}, {"time": 1765605600, "open": 885.72, "high": 888.08, "low": 883.7, "close": 888.07, "volume": 3614.44}, {"time": 1765609200, "open": 888.07, "high": 889.2, "low": 885.79, "close": 886.21, "volume": 2736.51}, {"time": 1765612800, "open": 886.2, "high": 889.91, "low": 885.8, "close": 888.92, "volume": 4395.39}, {"time": 1765616400, "open": 888.93, "high": 889.99, "low": 887.9, "close": 889.42, "volume": 3676.5}, {"time": 1765620000, "open": 889.42, "high": 894.26, "low": 888.77, "close": 892.92, "volume": 5783.48}, {"time": 1765623600, "open": 892.93, "high": 893.3, "low": 891.04, "close": 892.11, "volume": 3468.01}, {"time": 1765627200, "open": 892.1, "high": 894.11, "low": 891.05, "close": 891.49, "volume": 3180.99}, {"time": 1765630800, "open": 891.49, "high": 893.59, "low": 891.01, "close": 891.98, "volume": 3596.33}, {"time": 1765634400, "open": 891.99, "high": 893.05, "low": 886.94, "close": 891.29, "volume": 6461.99}, {"time": 1765638000, "open": 891.3, "high": 899.99, "low": 891.29, "close": 898.92, "volume": 12522.1}, {"time": 1765641600, "open": 898.92, "high": 904.22, "low": 897.01, "close": 897.49, "volume": 10181.5}, {"time": 1765645200, "open": 897.5, "high": 898.56, "low": 894.8, "close": 895.59, "volume": 4275.79}, {"time": 1765648800, "open": 895.6, "high": 896.89, "low": 891.2, "close": 892.13, "volume": 3162.34}, {"time": 1765652400, "open": 892.13, "high": 895.04, "low": 891.87, "close": 893.49, "volume": 1663.85}, {"time": 1765656000, "open": 893.48, "high": 896.0, "low": 893.43, "close": 893.67, "volume": 1852.44}, {"time": 1765659600, "open": 893.67, "high": 894.69, "low": 889.49, "close": 894.29, "volume": 1993.81}, {"time": 1765663200, "open": 894.28, "high": 896.75, "low": 893.17, "close": 895.69, "volume": 2099.87}, {"time": 1765666800, "open": 895.68, "high": 897.36, "low": 894.9, "close": 896.82, "volume": 1850.32}, {"time": 1765670400, "open": 896.82, "high": 899.5, "low": 895.4, "close": 896.65, "volume": 3244.53}, {"time": 1765674000, "open": 896.64, "high": 898.72, "low": 895.45, "close": 895.99, "volume": 2311.3}, {"time": 1765677600, "open": 896.0, "high": 896.75, "low": 894.26, "close": 896.4, "volume": 2487.38}, {"time": 1765681200, "open": 896.4, "high": 897.0, "low": 895.05, "close": 895.55, "volume": 1983.6}, {"time": 1765684800, "open": 895.55, "high": 896.77, "low": 893.97, "close": 894.76, "volume": 3188.02}, {"time": 1765688400, "open": 894.77, "high": 894.77, "low": 892.11, "close": 894.07, "volume": 2731.38}, {"time": 1765692000, "open": 894.08, "high": 894.56, "low": 892.49, "close": 893.32, "volume": 2257.76}, {"time": 1765695600, "open": 893.34, "high": 896.54, "low": 892.52, "close": 896.18, "volume": 2587.41}, {"time": 1765699200, "open": 896.19, "high": 898.68, "low": 896.18, "close": 896.91, "volume": 3061.67}, {"time": 1765702800, "open": 896.91, "high": 897.29, "low": 894.68, "close": 894.69, "volume": 3457.19}, {"time": 1765706400, "open": 894.69, "high": 894.7, "low": 890.06, "close": 893.09, "volume": 4973.48}, {"time": 1765710000, "open": 893.09, "high": 893.09, "low": 884.12, "close": 888.77, "volume": 9406.62}, {"time": 1765713600, "open": 888.78, "high": 894.1, "low": 886.5, "close": 892.0, "volume": 6326.06}, {"time": 1765717200, "open": 892.01, "high": 892.01, "low": 887.34, "close": 891.52, "volume": 7531.53}, {"time": 1765720800, "open": 891.51, "high": 894.73, "low": 885.61, "close": 888.06, "volume": 5447.47}, {"time": 1765724400, "open": 888.05, "high": 888.18, "low": 883.04, "close": 886.51, "volume": 4686.9}, {"time": 1765728000, "open": 886.52, "high": 888.5, "low": 883.59, "close": 886.18, "volume": 3993.37}, {"time": 1765731600, "open": 886.18, "high": 887.36, "low": 880.77, "close": 882.88, "volume": 6590.24}, {"time": 1765735200, "open": 882.88, "high": 886.0, "low": 881.94, "close": 885.89, "volume": 2996.91}, {"time": 1765738800, "open": 885.88, "high": 885.92, "low": 881.12, "close": 883.31, "volume": 4405.92}, {"time": 1765742400, "open": 883.31, "high": 884.9, "low": 880.01, "close": 882.11, "volume": 5603.15}, {"time": 1765746000, "open": 882.11, "high": 884.03, "low": 878.51, "close": 879.71, "volume": 5445.62}, {"time": 1765749600, "open": 879.71, "high": 882.11, "low": 874.7, "close": 878.54, "volume": 9242.5}, {"time": 1765753200, "open": 878.54, "high": 880.23, "low": 870.11, "close": 877.27, "volume": 6954.03}, {"time": 1765756800, "open": 877.27, "high": 883.15, "low": 876.31, "close": 882.7, "volume": 4940.17}, {"time": 1765760400, "open": 882.7, "high": 888.72, "low": 880.24, "close": 887.8, "volume": 8868.29}, {"time": 1765764000, "open": 887.8, "high": 895.42, "low": 887.51, "close": 888.81, "volume": 7418.05}, {"time": 1765767600, "open": 888.82, "high": 890.54, "low": 887.66, "close": 888.96, "volume": 3790.06}, {"time": 1765771200, "open": 888.95, "high": 890.49, "low": 886.76, "close": 889.31, "volume": 3793.89}, {"time": 1765774800, "open": 889.32, "high": 890.36, "low": 887.52, "close": 888.09, "volume": 3242.72}, {"time": 1765778400, "open": 888.1, "high": 891.42, "low": 886.6, "close": 890.34, "volume": 5218.38}, {"time": 1765782000, "open": 890.35, "high": 891.6, "low": 887.52, "close": 889.38, "volume": 4044.88}, {"time": 1765785600, "open": 889.38, "high": 890.28, "low": 887.7, "close": 889.27, "volume": 4441.78}, {"time": 1765789200, "open": 889.27, "high": 892.41, "low": 889.26, "close": 891.05, "volume": 4165.81}, {"time": 1765792800, "open": 891.06, "high": 893.32, "low": 889.76, "close": 890.21, "volume": 7706.72}, {"time": 1765796400, "open": 890.2, "high": 890.56, "low": 887.12, "close": 887.76, "volume": 3313.31}, {"time": 1765800000, "open": 887.75, "high": 889.2, "low": 885.84, "close": 888.57, "volume": 4796.82}, {"time": 1765803600, "open": 888.57, "high": 889.08, "low": 885.14, "close": 886.92, "volume": 4652.86}, {"time": 1765807200, "open": 886.92, "high": 890.2, "low": 869.19, "close": 871.64, "volume": 17144.0}, {"time": 1765810800, "open": 871.64, "high": 871.64, "low": 852.0, "close": 859.14, "volume": 44449.3}, {"time": 1765814400, "open": 859.13, "high": 859.95, "low": 848.48, "close": 852.22, "volume": 21699.3}, {"time": 1765818000, "open": 852.21, "high": 853.29, "low": 842.36, "close": 844.54, "volume": 15353.3}, {"time": 1765821600, "open": 844.54, "high": 851.65, "low": 840.75, "close": 851.19, "volume": 10926.4}, {"time": 1765825200, "open": 851.19, "high": 855.05, "low": 848.6, "close": 849.95, "volume": 7544.88}, {"time": 1765828800, "open": 849.95, "high": 850.0, "low": 844.7, "close": 846.24, "volume": 5156.02}, {"time": 1765832400, "open": 846.24, "high": 853.47, "low": 845.61, "close": 853.21, "volume": 4752.68}, {"time": 1765836000, "open": 853.22, "high": 853.94, "low": 850.47, "close": 853.89, "volume": 4522.52}, {"time": 1765839600, "open": 853.9, "high": 859.09, "low": 853.9, "close": 858.6, "volume": 8925.75}, {"time": 1765843200, "open": 858.61, "high": 858.75, "low": 852.35, "close": 852.76, "volume": 6347.03}, {"time": 1765846800, "open": 852.77, "high": 856.9, "low": 851.65, "close": 854.57, "volume": 6370.25}, {"time": 1765850400, "open": 854.57, "high": 858.3, "low": 851.7, "close": 856.02, "volume": 4438.03}, {"time": 1765854000, "open": 856.01, "high": 857.0, "low": 850.57, "close": 855.45, "volume": 5635.47}, {"time": 1765857600, "open": 855.46, "high": 856.73, "low": 847.0, "close": 854.6, "volume": 10554.5}, {"time": 1765861200, "open": 854.59, "high": 856.79, "low": 853.29, "close": 856.46, "volume": 11338.4}, {"time": 1765864800, "open": 856.47, "high": 865.72, "low": 856.46, "close": 865.32, "volume": 5948.26}, {"time": 1765868400, "open": 865.33, "high": 865.9, "low": 858.79, "close": 859.57, "volume": 6046.76}, {"time": 1765872000, "open": 859.58, "high": 861.8, "low": 857.03, "close": 858.34, "volume": 5820.69}, {"time": 1765875600, "open": 858.33, "high": 862.2, "low": 857.72, "close": 859.86, "volume": 6478.31}, {"time": 1765879200, "open": 859.86, "high": 865.5, "low": 858.91, "close": 862.1, "volume": 6157.06}, {"time": 1765882800, "open": 862.1, "high": 866.25, "low": 861.7, "close": 865.8, "volume": 6124.93}, {"time": 1765886400, "open": 865.8, "high": 870.0, "low": 865.48, "close": 868.16, "volume": 18308.5}, {"time": 1765890000, "open": 868.15, "high": 872.06, "low": 861.46, "close": 861.72, "volume": 21281.5}, {"time": 1765893600, "open": 861.71, "high": 874.39, "low": 858.56, "close": 872.18, "volume": 16919.9}, {"time": 1765897200, "open": 872.18, "high": 878.44, "low": 868.12, "close": 876.65, "volume": 17244.3}, {"time": 1765900800, "open": 876.64, "high": 876.66, "low": 870.07, "close": 870.91, "volume": 18419.5}, {"time": 1765904400, "open": 870.91, "high": 872.79, "low": 866.89, "close": 867.2, "volume": 11644.3}, {"time": 1765908000, "open": 867.19, "high": 873.51, "low": 866.26, "close": 871.49, "volume": 11740.1}, {"time": 1765911600, "open": 871.48, "high": 872.0, "low": 866.99, "close": 870.37, "volume": 8685.4}, {"time": 1765915200, "open": 870.36, "high": 872.25, "low": 869.1, "close": 870.41, "volume": 7429.4}, {"time": 1765918800, "open": 870.42, "high": 873.48, "low": 869.25, "close": 872.48, "volume": 10650.4}, {"time": 1765922400, "open": 872.47, "high": 874.96, "low": 871.67, "close": 873.66, "volume": 7820.92}, {"time": 1765926000, "open": 873.66, "high": 875.78, "low": 872.3, "close": 875.63, "volume": 9431.51}, {"time": 1765929600, "open": 875.64, "high": 875.75, "low": 870.44, "close": 871.13, "volume": 10565.9}, {"time": 1765933200, "open": 871.13, "high": 874.96, "low": 870.01, "close": 870.99, "volume": 3961.03}, {"time": 1765936800, "open": 870.99, "high": 871.16, "low": 865.11, "close": 867.33, "volume": 8566.17}, {"time": 1765940400, "open": 867.34, "high": 868.34, "low": 862.0, "close": 863.43, "volume": 12718.2}, {"time": 1765944000, "open": 863.44, "high": 863.5, "low": 858.88, "close": 859.0, "volume": 15226.2}, {"time": 1765947600, "open": 858.99, "high": 860.32, "low": 855.55, "close": 858.86, "volume": 10363.1}, {"time": 1765951200, "open": 858.86, "high": 868.13, "low": 858.42, "close": 865.88, "volume": 19769.2}, {"time": 1765954800, "open": 865.89, "high": 871.13, "low": 865.01, "close": 868.06, "volume": 17764.6}, {"time": 1765958400, "open": 868.07, "high": 868.07, "low": 862.38, "close": 862.61, "volume": 18580.6}, {"time": 1765962000, "open": 862.6, "high": 864.89, "low": 860.67, "close": 860.7, "volume": 11982.7}, {"time": 1765965600, "open": 860.71, "high": 861.19, "low": 855.41, "close": 856.55, "volume": 20036.3}, {"time": 1765969200, "open": 856.56, "high": 860.86, "low": 856.1, "close": 859.82, "volume": 13628.4}, {"time": 1765972800, "open": 859.84, "high": 861.06, "low": 857.3, "close": 860.59, "volume": 18829.5}, {"time": 1765976400, "open": 860.59, "high": 864.9, "low": 857.7, "close": 862.44, "volume": 15649.0}, {"time": 1765980000, "open": 862.44, "high": 869.4, "low": 855.0, "close": 869.26, "volume": 40022.0}, {"time": 1765983600, "open": 869.26, "high": 876.16, "low": 852.74, "close": 853.78, "volume": 47157.5}, {"time": 1765987200, "open": 853.77, "high": 857.96, "low": 840.07, "close": 847.39, "volume": 32314.3}, {"time": 1765990800, "open": 847.39, "high": 849.61, "low": 842.19, "close": 843.73, "volume": 14005.6}, {"time": 1765994400, "open": 843.73, "high": 847.04, "low": 836.7, "close": 837.85, "volume": 16008.6}, {"time": 1765998000, "open": 837.86, "high": 841.45, "low": 833.39, "close": 840.8, "volume": 13977.1}, {"time": 1766001600, "open": 840.8, "high": 844.9, "low": 838.75, "close": 842.35, "volume": 4504.57}, {"time": 1766005200, "open": 842.33, "high": 843.2, "low": 837.68, "close": 838.72, "volume": 2977.42}, {"time": 1766008800, "open": 838.72, "high": 843.71, "low": 836.74, "close": 843.69, "volume": 4368.76}, {"time": 1766012400, "open": 843.69, "high": 843.8, "low": 840.6, "close": 843.07, "volume": 5096.62}, {"time": 1766016000, "open": 843.07, "high": 845.94, "low": 840.7, "close": 845.6, "volume": 5871.87}, {"time": 1766019600, "open": 845.6, "high": 845.6, "low": 839.06, "close": 841.24, "volume": 6324.27}, {"time": 1766023200, "open": 841.24, "high": 846.76, "low": 839.91, "close": 845.43, "volume": 8838.05}, {"time": 1766026800, "open": 845.43, "high": 845.43, "low": 833.2, "close": 836.7, "volume": 14682.2}, {"time": 1766030400, "open": 836.69, "high": 839.5, "low": 836.09, "close": 836.41, "volume": 9140.45}, {"time": 1766034000, "open": 836.41, "high": 836.84, "low": 830.12, "close": 831.49, "volume": 15099.9}];
+                        var entryPrice1 = 819.86;
+                        var exitPrice1 = 858.86;
+                        var exitReason1 = 'TAKE_PROFIT';
+                        // Konwertuj czasy do Unix timestamp
+                        var entryTime1 = Math.floor(new Date('2025-12-01 14:00:00').getTime() / 1000);
+                        var exitTime1 = Math.floor(new Date('2025-12-17 05:00:00').getTime() / 1000);
+                    </script>
+                </div>
+
+                <div class="trade-row">
+                    <div class="trade-header" onclick="toggleChart(2)">
+                        <div class="expand-icon" id="icon-2">▶</div>
+                        <div class="trade-number">#2</div>
+                        <div><strong>BNBUSDT</strong></div>
+                        <div>2025-12-17 06:00:00</div>
+                        <div>2025-12-31 23:59:59</div>
+                        <div>865.8800</div>
+                        <div>864.3000</div>
+                        <div class="loss">-0.19 USDT</div>
+                        <div><span class="badge badge-danger">-0.18%</span></div>
+                    </div>
+                    <div class="trade-chart" id="chart-2">
+                        <div class="chart-container" id="chart-container-2"></div>
+                    </div>
+                    <script>
+                        var chartData2 = [{"time": 1765864800, "open": 856.47, "high": 865.72, "low": 856.46, "close": 865.32, "volume": 5948.26}, {"time": 1765868400, "open": 865.33, "high": 865.9, "low": 858.79, "close": 859.57, "volume": 6046.76}, {"time": 1765872000, "open": 859.58, "high": 861.8, "low": 857.03, "close": 858.34, "volume": 5820.69}, {"time": 1765875600, "open": 858.33, "high": 862.2, "low": 857.72, "close": 859.86, "volume": 6478.31}, {"time": 1765879200, "open": 859.86, "high": 865.5, "low": 858.91, "close": 862.1, "volume": 6157.06}, {"time": 1765882800, "open": 862.1, "high": 866.25, "low": 861.7, "close": 865.8, "volume": 6124.93}, {"time": 1765886400, "open": 865.8, "high": 870.0, "low": 865.48, "close": 868.16, "volume": 18308.5}, {"time": 1765890000, "open": 868.15, "high": 872.06, "low": 861.46, "close": 861.72, "volume": 21281.5}, {"time": 1765893600, "open": 861.71, "high": 874.39, "low": 858.56, "close": 872.18, "volume": 16919.9}, {"time": 1765897200, "open": 872.18, "high": 878.44, "low": 868.12, "close": 876.65, "volume": 17244.3}, {"time": 1765900800, "open": 876.64, "high": 876.66, "low": 870.07, "close": 870.91, "volume": 18419.5}, {"time": 1765904400, "open": 870.91, "high": 872.79, "low": 866.89, "close": 867.2, "volume": 11644.3}, {"time": 1765908000, "open": 867.19, "high": 873.51, "low": 866.26, "close": 871.49, "volume": 11740.1}, {"time": 1765911600, "open": 871.48, "high": 872.0, "low": 866.99, "close": 870.37, "volume": 8685.4}, {"time": 1765915200, "open": 870.36, "high": 872.25, "low": 869.1, "close": 870.41, "volume": 7429.4}, {"time": 1765918800, "open": 870.42, "high": 873.48, "low": 869.25, "close": 872.48, "volume": 10650.4}, {"time": 1765922400, "open": 872.47, "high": 874.96, "low": 871.67, "close": 873.66, "volume": 7820.92}, {"time": 1765926000, "open": 873.66, "high": 875.78, "low": 872.3, "close": 875.63, "volume": 9431.51}, {"time": 1765929600, "open": 875.64, "high": 875.75, "low": 870.44, "close": 871.13, "volume": 10565.9}, {"time": 1765933200, "open": 871.13, "high": 874.96, "low": 870.01, "close": 870.99, "volume": 3961.03}, {"time": 1765936800, "open": 870.99, "high": 871.16, "low": 865.11, "close": 867.33, "volume": 8566.17}, {"time": 1765940400, "open": 867.34, "high": 868.34, "low": 862.0, "close": 863.43, "volume": 12718.2}, {"time": 1765944000, "open": 863.44, "high": 863.5, "low": 858.88, "close": 859.0, "volume": 15226.2}, {"time": 1765947600, "open": 858.99, "high": 860.32, "low": 855.55, "close": 858.86, "volume": 10363.1}, {"time": 1765951200, "open": 858.86, "high": 868.13, "low": 858.42, "close": 865.88, "volume": 19769.2}, {"time": 1765954800, "open": 865.89, "high": 871.13, "low": 865.01, "close": 868.06, "volume": 17764.6}, {"time": 1765958400, "open": 868.07, "high": 868.07, "low": 862.38, "close": 862.61, "volume": 18580.6}, {"time": 1765962000, "open": 862.6, "high": 864.89, "low": 860.67, "close": 860.7, "volume": 11982.7}, {"time": 1765965600, "open": 860.71, "high": 861.19, "low": 855.41, "close": 856.55, "volume": 20036.3}, {"time": 1765969200, "open": 856.56, "high": 860.86, "low": 856.1, "close": 859.82, "volume": 13628.4}, {"time": 1765972800, "open": 859.84, "high": 861.06, "low": 857.3, "close": 860.59, "volume": 18829.5}, {"time": 1765976400, "open": 860.59, "high": 864.9, "low": 857.7, "close": 862.44, "volume": 15649.0}, {"time": 1765980000, "open": 862.44, "high": 869.4, "low": 855.0, "close": 869.26, "volume": 40022.0}, {"time": 1765983600, "open": 869.26, "high": 876.16, "low": 852.74, "close": 853.78, "volume": 47157.5}, {"time": 1765987200, "open": 853.77, "high": 857.96, "low": 840.07, "close": 847.39, "volume": 32314.3}, {"time": 1765990800, "open": 847.39, "high": 849.61, "low": 842.19, "close": 843.73, "volume": 14005.6}, {"time": 1765994400, "open": 843.73, "high": 847.04, "low": 836.7, "close": 837.85, "volume": 16008.6}, {"time": 1765998000, "open": 837.86, "high": 841.45, "low": 833.39, "close": 840.8, "volume": 13977.1}, {"time": 1766001600, "open": 840.8, "high": 844.9, "low": 838.75, "close": 842.35, "volume": 4504.57}, {"time": 1766005200, "open": 842.33, "high": 843.2, "low": 837.68, "close": 838.72, "volume": 2977.42}, {"time": 1766008800, "open": 838.72, "high": 843.71, "low": 836.74, "close": 843.69, "volume": 4368.76}, {"time": 1766012400, "open": 843.69, "high": 843.8, "low": 840.6, "close": 843.07, "volume": 5096.62}, {"time": 1766016000, "open": 843.07, "high": 845.94, "low": 840.7, "close": 845.6, "volume": 5871.87}, {"time": 1766019600, "open": 845.6, "high": 845.6, "low": 839.06, "close": 841.24, "volume": 6324.27}, {"time": 1766023200, "open": 841.24, "high": 846.76, "low": 839.91, "close": 845.43, "volume": 8838.05}, {"time": 1766026800, "open": 845.43, "high": 845.43, "low": 833.2, "close": 836.7, "volume": 14682.2}, {"time": 1766030400, "open": 836.69, "high": 839.5, "low": 836.09, "close": 836.41, "volume": 9140.45}, {"time": 1766034000, "open": 836.41, "high": 836.84, "low": 830.12, "close": 831.49, "volume": 15099.9}, {"time": 1766037600, "open": 831.5, "high": 835.0, "low": 830.49, "close": 834.74, "volume": 7015.11}, {"time": 1766041200, "open": 834.75, "high": 835.96, "low": 832.76, "close": 833.72, "volume": 13867.4}, {"time": 1766044800, "open": 833.72, "high": 837.73, "low": 832.78, "close": 836.13, "volume": 16794.1}, {"time": 1766048400, "open": 836.13, "high": 839.84, "low": 834.31, "close": 839.03, "volume": 20646.8}, {"time": 1766052000, "open": 839.04, "high": 841.73, "low": 837.82, "close": 840.12, "volume": 10224.5}, {"time": 1766055600, "open": 840.13, "high": 840.26, "low": 837.0, "close": 839.72, "volume": 10023.3}, {"time": 1766059200, "open": 839.73, "high": 841.04, "low": 837.31, "close": 838.98, "volume": 20588.4}, {"time": 1766062800, "open": 838.99, "high": 852.4, "low": 838.99, "close": 848.88, "volume": 38883.0}, {"time": 1766066400, "open": 848.87, "high": 853.49, "low": 838.17, "close": 843.74, "volume": 32404.0}, {"time": 1766070000, "open": 843.75, "high": 851.34, "low": 840.03, "close": 848.22, "volume": 26876.0}, {"time": 1766073600, "open": 848.22, "high": 848.93, "low": 843.93, "close": 845.45, "volume": 14810.8}, {"time": 1766077200, "open": 845.44, "high": 845.53, "low": 819.1, "close": 831.91, "volume": 43627.1}, {"time": 1766080800, "open": 831.91, "high": 839.0, "low": 830.26, "close": 832.09, "volume": 31578.6}, {"time": 1766084400, "open": 832.1, "high": 832.72, "low": 818.39, "close": 820.53, "volume": 35238.1}, {"time": 1766088000, "open": 820.52, "high": 826.81, "low": 820.19, "close": 820.73, "volume": 15118.0}, {"time": 1766091600, "open": 820.73, "high": 830.57, "low": 820.73, "close": 830.27, "volume": 11334.1}, {"time": 1766095200, "open": 830.28, "high": 831.91, "low": 828.13, "close": 831.7, "volume": 11268.2}, {"time": 1766098800, "open": 831.7, "high": 831.86, "low": 828.33, "close": 830.07, "volume": 11770.5}, {"time": 1766102400, "open": 830.08, "high": 832.47, "low": 827.95, "close": 831.08, "volume": 7122.54}, {"time": 1766106000, "open": 831.08, "high": 831.17, "low": 823.12, "close": 825.18, "volume": 13301.6}, {"time": 1766109600, "open": 825.17, "high": 828.82, "low": 822.38, "close": 826.68, "volume": 21414.7}, {"time": 1766113200, "open": 826.68, "high": 841.93, "low": 826.45, "close": 837.66, "volume": 29709.5}, {"time": 1766116800, "open": 837.67, "high": 841.04, "low": 835.76, "close": 837.21, "volume": 27066.4}, {"time": 1766120400, "open": 837.2, "high": 839.58, "low": 835.51, "close": 839.35, "volume": 31679.8}, {"time": 1766124000, "open": 839.35, "high": 843.9, "low": 838.19, "close": 843.72, "volume": 38909.8}, {"time": 1766127600, "open": 843.73, "high": 850.22, "low": 842.25, "close": 843.15, "volume": 69226.3}, {"time": 1766131200, "open": 843.15, "high": 845.94, "low": 842.15, "close": 844.88, "volume": 155316.0}, {"time": 1766134800, "open": 844.89, "high": 847.48, "low": 843.36, "close": 845.58, "volume": 226157.0}, {"time": 1766138400, "open": 845.58, "high": 847.07, "low": 843.12, "close": 845.4, "volume": 513571.0}, {"time": 1766142000, "open": 845.4, "high": 849.48, "low": 844.7, "close": 849.1, "volume": 6712.74}, {"time": 1766145600, "open": 849.11, "high": 849.41, "low": 845.54, "close": 845.57, "volume": 6188.1}, {"time": 1766149200, "open": 845.57, "high": 848.36, "low": 845.57, "close": 847.78, "volume": 4463.9}, {"time": 1766152800, "open": 847.78, "high": 850.73, "low": 843.6, "close": 848.29, "volume": 10851.5}, {"time": 1766156400, "open": 848.28, "high": 855.0, "low": 844.44, "close": 846.6, "volume": 12945.3}, {"time": 1766160000, "open": 846.61, "high": 853.35, "low": 845.95, "close": 848.28, "volume": 7512.33}, {"time": 1766163600, "open": 848.28, "high": 850.59, "low": 843.6, "close": 844.95, "volume": 10445.7}, {"time": 1766167200, "open": 844.96, "high": 851.0, "low": 844.96, "close": 849.33, "volume": 6083.71}, {"time": 1766170800, "open": 849.33, "high": 857.99, "low": 849.33, "close": 856.15, "volume": 7328.31}, {"time": 1766174400, "open": 856.15, "high": 862.33, "low": 854.23, "close": 860.44, "volume": 8835.81}, {"time": 1766178000, "open": 860.44, "high": 860.49, "low": 854.24, "close": 854.84, "volume": 6609.23}, {"time": 1766181600, "open": 854.84, "high": 857.19, "low": 854.83, "close": 856.28, "volume": 3761.15}, {"time": 1766185200, "open": 856.28, "high": 857.13, "low": 854.71, "close": 856.17, "volume": 2134.56}, {"time": 1766188800, "open": 856.17, "high": 857.1, "low": 853.76, "close": 854.26, "volume": 2255.2}, {"time": 1766192400, "open": 854.26, "high": 854.31, "low": 852.39, "close": 852.78, "volume": 2003.86}, {"time": 1766196000, "open": 852.78, "high": 856.9, "low": 852.59, "close": 855.8, "volume": 2253.65}, {"time": 1766199600, "open": 855.8, "high": 859.7, "low": 855.79, "close": 858.41, "volume": 4247.37}, {"time": 1766203200, "open": 858.41, "high": 858.59, "low": 854.11, "close": 854.36, "volume": 3985.25}, {"time": 1766206800, "open": 854.36, "high": 856.03, "low": 852.18, "close": 854.15, "volume": 5620.35}, {"time": 1766210400, "open": 854.15, "high": 855.08, "low": 852.43, "close": 853.8, "volume": 2648.28}, {"time": 1766214000, "open": 853.8, "high": 854.29, "low": 852.26, "close": 853.85, "volume": 2482.16}, {"time": 1766217600, "open": 853.84, "high": 856.33, "low": 853.4, "close": 853.61, "volume": 2073.52}, {"time": 1766221200, "open": 853.62, "high": 854.09, "low": 853.07, "close": 853.25, "volume": 2659.07}, {"time": 1766224800, "open": 853.24, "high": 853.26, "low": 850.95, "close": 852.48, "volume": 2777.73}, {"time": 1766228400, "open": 852.48, "high": 853.76, "low": 851.2, "close": 853.57, "volume": 2529.67}, {"time": 1766232000, "open": 853.56, "high": 853.76, "low": 852.75, "close": 853.14, "volume": 1996.81}, {"time": 1766235600, "open": 853.13, "high": 853.77, "low": 850.9, "close": 853.1, "volume": 3729.17}, {"time": 1766239200, "open": 853.1, "high": 853.15, "low": 851.0, "close": 853.05, "volume": 2210.42}, {"time": 1766242800, "open": 853.04, "high": 853.97, "low": 851.6, "close": 853.97, "volume": 2975.49}, {"time": 1766246400, "open": 853.97, "high": 854.35, "low": 853.05, "close": 854.26, "volume": 1519.88}, {"time": 1766250000, "open": 854.27, "high": 854.6, "low": 853.11, "close": 853.47, "volume": 1036.29}, {"time": 1766253600, "open": 853.47, "high": 854.16, "low": 852.54, "close": 853.29, "volume": 1034.23}, {"time": 1766257200, "open": 853.28, "high": 853.6, "low": 852.68, "close": 853.05, "volume": 569.098}, {"time": 1766260800, "open": 853.05, "high": 853.63, "low": 852.62, "close": 853.29, "volume": 1547.35}, {"time": 1766264400, "open": 853.3, "high": 853.67, "low": 852.5, "close": 852.5, "volume": 925.683}, {"time": 1766268000, "open": 852.51, "high": 853.05, "low": 851.01, "close": 852.83, "volume": 1512.69}, {"time": 1766271600, "open": 852.83, "high": 855.12, "low": 851.93, "close": 854.17, "volume": 2421.9}, {"time": 1766275200, "open": 854.17, "high": 855.21, "low": 853.36, "close": 854.29, "volume": 1272.28}, {"time": 1766278800, "open": 854.29, "high": 854.29, "low": 851.62, "close": 851.8, "volume": 1933.27}, {"time": 1766282400, "open": 851.81, "high": 852.8, "low": 846.84, "close": 847.67, "volume": 4136.75}, {"time": 1766286000, "open": 847.67, "high": 851.21, "low": 847.34, "close": 850.3, "volume": 1894.89}, {"time": 1766289600, "open": 850.31, "high": 850.81, "low": 848.5, "close": 848.63, "volume": 1819.61}, {"time": 1766293200, "open": 848.63, "high": 849.87, "low": 848.2, "close": 848.4, "volume": 1162.09}, {"time": 1766296800, "open": 848.41, "high": 850.53, "low": 848.24, "close": 849.81, "volume": 2072.86}, {"time": 1766300400, "open": 849.82, "high": 850.37, "low": 848.58, "close": 849.89, "volume": 2995.0}, {"time": 1766304000, "open": 849.88, "high": 856.13, "low": 848.99, "close": 854.0, "volume": 3707.31}, {"time": 1766307600, "open": 854.0, "high": 858.28, "low": 852.53, "close": 857.21, "volume": 4457.02}, {"time": 1766311200, "open": 857.21, "high": 859.91, "low": 855.0, "close": 856.21, "volume": 3479.76}, {"time": 1766314800, "open": 856.2, "high": 857.98, "low": 855.6, "close": 856.79, "volume": 2073.69}, {"time": 1766318400, "open": 856.78, "high": 859.5, "low": 855.81, "close": 858.5, "volume": 3647.44}, {"time": 1766322000, "open": 858.49, "high": 858.66, "low": 845.57, "close": 846.71, "volume": 9725.6}, {"time": 1766325600, "open": 846.7, "high": 850.69, "low": 845.95, "close": 850.31, "volume": 3664.14}, {"time": 1766329200, "open": 850.31, "high": 850.31, "low": 845.5, "close": 848.59, "volume": 4389.02}, {"time": 1766332800, "open": 848.59, "high": 852.37, "low": 846.4, "close": 852.25, "volume": 3342.61}, {"time": 1766336400, "open": 852.25, "high": 856.29, "low": 851.8, "close": 853.4, "volume": 3615.21}, {"time": 1766340000, "open": 853.4, "high": 853.52, "low": 850.87, "close": 852.97, "volume": 1473.58}, {"time": 1766343600, "open": 852.97, "high": 856.66, "low": 852.97, "close": 855.69, "volume": 2702.41}, {"time": 1766347200, "open": 855.7, "high": 856.63, "low": 853.73, "close": 853.93, "volume": 951.632}, {"time": 1766350800, "open": 853.93, "high": 855.0, "low": 851.2, "close": 851.82, "volume": 995.105}, {"time": 1766354400, "open": 851.84, "high": 857.0, "low": 851.46, "close": 856.78, "volume": 1840.26}, {"time": 1766358000, "open": 856.78, "high": 859.63, "low": 855.64, "close": 858.64, "volume": 2635.29}, {"time": 1766361600, "open": 858.63, "high": 867.84, "low": 858.63, "close": 859.3, "volume": 7895.46}, {"time": 1766365200, "open": 859.3, "high": 863.88, "low": 857.55, "close": 857.66, "volume": 3974.82}, {"time": 1766368800, "open": 857.71, "high": 858.13, "low": 850.85, "close": 855.7, "volume": 6127.5}, {"time": 1766372400, "open": 855.69, "high": 857.88, "low": 853.8, "close": 856.0, "volume": 3364.32}, {"time": 1766376000, "open": 856.01, "high": 859.73, "low": 855.14, "close": 859.41, "volume": 2594.39}, {"time": 1766379600, "open": 859.42, "high": 859.73, "low": 855.92, "close": 856.95, "volume": 4337.74}, {"time": 1766383200, "open": 856.95, "high": 860.71, "low": 856.4, "close": 859.04, "volume": 4113.79}, {"time": 1766386800, "open": 859.03, "high": 861.04, "low": 858.2, "close": 858.69, "volume": 6967.47}, {"time": 1766390400, "open": 858.69, "high": 868.22, "low": 858.5, "close": 863.88, "volume": 15153.6}, {"time": 1766394000, "open": 863.88, "high": 867.66, "low": 861.98, "close": 862.21, "volume": 10780.4}, {"time": 1766397600, "open": 862.2, "high": 867.0, "low": 860.0, "close": 866.25, "volume": 15309.1}, {"time": 1766401200, "open": 866.25, "high": 866.58, "low": 864.13, "close": 865.4, "volume": 5384.32}, {"time": 1766404800, "open": 865.4, "high": 871.0, "low": 864.79, "close": 866.52, "volume": 9515.1}, {"time": 1766408400, "open": 866.51, "high": 867.39, "low": 862.84, "close": 864.41, "volume": 4630.85}, {"time": 1766412000, "open": 864.4, "high": 869.55, "low": 863.4, "close": 867.93, "volume": 6504.2}, {"time": 1766415600, "open": 867.93, "high": 869.91, "low": 861.77, "close": 867.75, "volume": 5902.46}, {"time": 1766419200, "open": 867.76, "high": 868.94, "low": 865.59, "close": 866.98, "volume": 5585.36}, {"time": 1766422800, "open": 866.97, "high": 868.18, "low": 864.87, "close": 867.56, "volume": 3347.1}, {"time": 1766426400, "open": 867.55, "high": 869.16, "low": 865.62, "close": 866.55, "volume": 3213.75}, {"time": 1766430000, "open": 866.55, "high": 866.55, "low": 857.0, "close": 857.6, "volume": 8413.07}, {"time": 1766433600, "open": 857.6, "high": 858.67, "low": 853.5, "close": 855.63, "volume": 6832.9}, {"time": 1766437200, "open": 855.63, "high": 858.74, "low": 855.4, "close": 856.15, "volume": 2856.96}, {"time": 1766440800, "open": 856.15, "high": 861.18, "low": 855.5, "close": 860.38, "volume": 2557.13}, {"time": 1766444400, "open": 860.39, "high": 860.46, "low": 857.26, "close": 858.66, "volume": 1914.25}, {"time": 1766448000, "open": 858.67, "high": 861.46, "low": 858.0, "close": 860.14, "volume": 2631.63}, {"time": 1766451600, "open": 860.14, "high": 860.64, "low": 857.19, "close": 858.4, "volume": 2070.58}, {"time": 1766455200, "open": 858.41, "high": 859.7, "low": 854.65, "close": 855.43, "volume": 3516.04}, {"time": 1766458800, "open": 855.44, "high": 857.7, "low": 852.23, "close": 857.27, "volume": 4010.24}, {"time": 1766462400, "open": 857.27, "high": 857.8, "low": 854.47, "close": 855.07, "volume": 2559.88}, {"time": 1766466000, "open": 855.07, "high": 855.49, "low": 851.36, "close": 852.9, "volume": 4458.59}, {"time": 1766469600, "open": 852.91, "high": 852.91, "low": 847.06, "close": 849.14, "volume": 7867.61}, {"time": 1766473200, "open": 849.15, "high": 850.47, "low": 847.76, "close": 848.61, "volume": 4881.92}, {"time": 1766476800, "open": 848.6, "high": 850.38, "low": 847.97, "close": 848.68, "volume": 2536.66}, {"time": 1766480400, "open": 848.68, "high": 850.22, "low": 848.04, "close": 849.33, "volume": 4239.28}, {"time": 1766484000, "open": 849.34, "high": 851.89, "low": 849.33, "close": 851.33, "volume": 2291.29}, {"time": 1766487600, "open": 851.32, "high": 853.29, "low": 851.0, "close": 852.97, "volume": 2695.16}, {"time": 1766491200, "open": 852.97, "high": 852.98, "low": 849.04, "close": 850.0, "volume": 3156.39}, {"time": 1766494800, "open": 850.01, "high": 851.04, "low": 846.37, "close": 848.44, "volume": 5218.24}, {"time": 1766498400, "open": 848.43, "high": 850.2, "low": 838.24, "close": 840.78, "volume": 12695.2}, {"time": 1766502000, "open": 840.78, "high": 844.85, "low": 838.44, "close": 844.17, "volume": 8554.17}, {"time": 1766505600, "open": 844.17, "high": 850.23, "low": 842.4, "close": 848.88, "volume": 6846.35}, {"time": 1766509200, "open": 848.88, "high": 849.62, "low": 839.0, "close": 839.02, "volume": 5367.19}, {"time": 1766512800, "open": 839.02, "high": 846.12, "low": 839.01, "close": 845.22, "volume": 4684.64}, {"time": 1766516400, "open": 845.23, "high": 846.11, "low": 840.38, "close": 841.44, "volume": 4188.9}, {"time": 1766520000, "open": 841.43, "high": 847.66, "low": 840.2, "close": 843.4, "volume": 3011.97}, {"time": 1766523600, "open": 843.4, "high": 845.44, "low": 842.6, "close": 845.05, "volume": 1366.87}, {"time": 1766527200, "open": 845.06, "high": 845.91, "low": 841.19, "close": 843.13, "volume": 2882.37}, {"time": 1766530800, "open": 843.13, "high": 845.12, "low": 841.7, "close": 844.3, "volume": 2163.7}, {"time": 1766534400, "open": 844.3, "high": 846.81, "low": 843.68, "close": 846.68, "volume": 1714.51}, {"time": 1766538000, "open": 846.69, "high": 847.8, "low": 843.22, "close": 843.91, "volume": 1641.55}, {"time": 1766541600, "open": 843.91, "high": 844.0, "low": 836.46, "close": 838.85, "volume": 6413.12}, {"time": 1766545200, "open": 838.84, "high": 841.66, "low": 836.29, "close": 840.75, "volume": 3334.12}, {"time": 1766548800, "open": 840.75, "high": 842.52, "low": 839.37, "close": 839.48, "volume": 3730.12}, {"time": 1766552400, "open": 839.48, "high": 840.65, "low": 836.77, "close": 838.1, "volume": 5588.1}, {"time": 1766556000, "open": 838.11, "high": 839.04, "low": 836.21, "close": 838.9, "volume": 3542.42}, {"time": 1766559600, "open": 838.9, "high": 840.62, "low": 838.0, "close": 838.0, "volume": 4995.73}, {"time": 1766563200, "open": 838.0, "high": 838.33, "low": 835.5, "close": 836.37, "volume": 4532.36}, {"time": 1766566800, "open": 836.38, "high": 837.66, "low": 835.21, "close": 836.08, "volume": 6222.08}, {"time": 1766570400, "open": 836.08, "high": 839.26, "low": 835.97, "close": 837.42, "volume": 4433.49}, {"time": 1766574000, "open": 837.41, "high": 839.63, "low": 837.41, "close": 837.99, "volume": 2477.83}, {"time": 1766577600, "open": 837.99, "high": 840.9, "low": 837.12, "close": 840.77, "volume": 3270.97}, {"time": 1766581200, "open": 840.77, "high": 841.72, "low": 838.7, "close": 840.87, "volume": 3001.12}, {"time": 1766584800, "open": 840.87, "high": 843.26, "low": 835.63, "close": 838.66, "volume": 4526.65}, {"time": 1766588400, "open": 838.66, "high": 842.66, "low": 836.78, "close": 841.2, "volume": 4320.29}, {"time": 1766592000, "open": 841.2, "high": 845.36, "low": 839.9, "close": 844.43, "volume": 4882.11}, {"time": 1766595600, "open": 844.43, "high": 846.9, "low": 843.25, "close": 844.8, "volume": 3164.8}, {"time": 1766599200, "open": 844.8, "high": 849.0, "low": 843.77, "close": 846.24, "volume": 4022.03}, {"time": 1766602800, "open": 846.23, "high": 847.87, "low": 845.71, "close": 847.78, "volume": 1407.44}, {"time": 1766606400, "open": 847.79, "high": 850.0, "low": 847.79, "close": 848.81, "volume": 1602.11}, {"time": 1766610000, "open": 848.8, "high": 849.43, "low": 847.25, "close": 847.61, "volume": 1874.38}, {"time": 1766613600, "open": 847.61, "high": 849.68, "low": 846.19, "close": 849.26, "volume": 3099.88}, {"time": 1766617200, "open": 849.27, "high": 849.35, "low": 846.56, "close": 846.58, "volume": 1120.58}, {"time": 1766620800, "open": 846.57, "high": 847.92, "low": 845.0, "close": 845.59, "volume": 1723.23}, {"time": 1766624400, "open": 845.6, "high": 847.84, "low": 845.6, "close": 847.21, "volume": 1002.54}, {"time": 1766628000, "open": 847.22, "high": 847.99, "low": 845.76, "close": 846.38, "volume": 1573.33}, {"time": 1766631600, "open": 846.37, "high": 846.42, "low": 843.94, "close": 844.95, "volume": 2096.44}, {"time": 1766635200, "open": 844.96, "high": 845.28, "low": 843.47, "close": 843.63, "volume": 1981.13}, {"time": 1766638800, "open": 843.63, "high": 843.63, "low": 842.0, "close": 843.22, "volume": 2330.05}, {"time": 1766642400, "open": 843.22, "high": 844.04, "low": 842.16, "close": 843.7, "volume": 1980.88}, {"time": 1766646000, "open": 843.7, "high": 843.71, "low": 842.19, "close": 843.29, "volume": 1868.39}, {"time": 1766649600, "open": 843.29, "high": 844.53, "low": 839.09, "close": 840.91, "volume": 4172.08}, {"time": 1766653200, "open": 840.91, "high": 841.4, "low": 839.72, "close": 840.98, "volume": 2229.28}, {"time": 1766656800, "open": 840.98, "high": 841.12, "low": 835.3, "close": 836.75, "volume": 4507.68}, {"time": 1766660400, "open": 836.76, "high": 838.51, "low": 836.6, "close": 837.6, "volume": 2319.08}, {"time": 1766664000, "open": 837.6, "high": 838.07, "low": 836.63, "close": 838.07, "volume": 2299.25}, {"time": 1766667600, "open": 838.07, "high": 838.88, "low": 835.11, "close": 836.95, "volume": 3569.92}, {"time": 1766671200, "open": 836.95, "high": 838.3, "low": 836.29, "close": 838.0, "volume": 2797.62}, {"time": 1766674800, "open": 838.0, "high": 844.69, "low": 837.4, "close": 842.53, "volume": 6313.49}, {"time": 1766678400, "open": 842.52, "high": 842.96, "low": 839.75, "close": 840.95, "volume": 3586.27}, {"time": 1766682000, "open": 840.95, "high": 841.91, "low": 840.0, "close": 841.21, "volume": 1886.57}, {"time": 1766685600, "open": 841.2, "high": 842.85, "low": 840.08, "close": 841.95, "volume": 3702.93}, {"time": 1766689200, "open": 841.95, "high": 842.31, "low": 840.54, "close": 841.35, "volume": 1011.13}, {"time": 1766692800, "open": 841.35, "high": 841.5, "low": 839.59, "close": 840.74, "volume": 982.557}, {"time": 1766696400, "open": 840.74, "high": 843.5, "low": 840.65, "close": 842.4, "volume": 1753.68}, {"time": 1766700000, "open": 842.41, "high": 842.61, "low": 835.39, "close": 837.11, "volume": 3390.05}, {"time": 1766703600, "open": 837.12, "high": 838.7, "low": 826.81, "close": 829.64, "volume": 13699.5}, {"time": 1766707200, "open": 829.63, "high": 831.64, "low": 828.0, "close": 830.29, "volume": 8310.97}, {"time": 1766710800, "open": 830.29, "high": 833.19, "low": 829.87, "close": 832.52, "volume": 3384.95}, {"time": 1766714400, "open": 832.52, "high": 844.8, "low": 831.76, "close": 842.37, "volume": 12563.5}, {"time": 1766718000, "open": 842.38, "high": 843.13, "low": 838.2, "close": 840.77, "volume": 4717.84}, {"time": 1766721600, "open": 840.77, "high": 841.64, "low": 837.44, "close": 841.31, "volume": 2696.51}, {"time": 1766725200, "open": 841.32, "high": 841.66, "low": 839.67, "close": 841.08, "volume": 2009.87}, {"time": 1766728800, "open": 841.09, "high": 844.62, "low": 841.09, "close": 843.89, "volume": 3540.17}, {"time": 1766732400, "open": 843.89, "high": 847.16, "low": 839.73, "close": 840.88, "volume": 6584.18}, {"time": 1766736000, "open": 840.89, "high": 842.83, "low": 840.49, "close": 841.8, "volume": 6007.5}, {"time": 1766739600, "open": 841.8, "high": 843.16, "low": 840.49, "close": 842.32, "volume": 4413.27}, {"time": 1766743200, "open": 842.32, "high": 842.83, "low": 840.52, "close": 840.67, "volume": 2357.85}, {"time": 1766746800, "open": 840.67, "high": 840.68, "low": 838.86, "close": 839.26, "volume": 2508.21}, {"time": 1766750400, "open": 839.27, "high": 842.1, "low": 839.26, "close": 841.67, "volume": 2852.81}, {"time": 1766754000, "open": 841.67, "high": 843.4, "low": 841.03, "close": 843.11, "volume": 2822.4}, {"time": 1766757600, "open": 843.11, "high": 843.4, "low": 830.05, "close": 830.22, "volume": 9718.54}, {"time": 1766761200, "open": 830.21, "high": 830.21, "low": 821.21, "close": 828.93, "volume": 20974.2}, {"time": 1766764800, "open": 828.94, "high": 832.01, "low": 827.96, "close": 828.6, "volume": 4485.71}, {"time": 1766768400, "open": 828.59, "high": 833.5, "low": 828.57, "close": 831.47, "volume": 3669.1}, {"time": 1766772000, "open": 831.47, "high": 834.9, "low": 831.25, "close": 833.45, "volume": 2814.0}, {"time": 1766775600, "open": 833.45, "high": 834.77, "low": 831.16, "close": 832.83, "volume": 5088.82}, {"time": 1766779200, "open": 832.83, "high": 838.19, "low": 832.02, "close": 836.46, "volume": 3645.88}, {"time": 1766782800, "open": 836.45, "high": 837.44, "low": 834.76, "close": 834.76, "volume": 1640.19}, {"time": 1766786400, "open": 834.76, "high": 835.56, "low": 833.76, "close": 835.5, "volume": 2194.68}, {"time": 1766790000, "open": 835.49, "high": 835.6, "low": 834.17, "close": 834.72, "volume": 1231.64}, {"time": 1766793600, "open": 834.72, "high": 836.42, "low": 834.71, "close": 835.57, "volume": 1640.3}, {"time": 1766797200, "open": 835.57, "high": 836.5, "low": 834.56, "close": 836.24, "volume": 1453.56}, {"time": 1766800800, "open": 836.25, "high": 836.42, "low": 834.0, "close": 835.27, "volume": 2323.65}, {"time": 1766804400, "open": 835.27, "high": 836.48, "low": 834.75, "close": 836.2, "volume": 1882.76}, {"time": 1766808000, "open": 836.2, "high": 836.39, "low": 834.15, "close": 835.75, "volume": 2179.45}, {"time": 1766811600, "open": 835.75, "high": 837.25, "low": 835.01, "close": 837.24, "volume": 2101.25}, {"time": 1766815200, "open": 837.24, "high": 840.2, "low": 836.6, "close": 839.53, "volume": 4063.4}, {"time": 1766818800, "open": 839.54, "high": 843.09, "low": 839.3, "close": 840.57, "volume": 6978.26}, {"time": 1766822400, "open": 840.56, "high": 843.22, "low": 840.06, "close": 840.25, "volume": 7446.44}, {"time": 1766826000, "open": 840.25, "high": 841.98, "low": 838.39, "close": 838.69, "volume": 9438.93}, {"time": 1766829600, "open": 838.7, "high": 843.42, "low": 837.62, "close": 841.65, "volume": 17019.2}, {"time": 1766833200, "open": 841.65, "high": 841.72, "low": 840.1, "close": 840.96, "volume": 3497.02}, {"time": 1766836800, "open": 840.97, "high": 841.46, "low": 839.52, "close": 840.03, "volume": 4329.62}, {"time": 1766840400, "open": 840.03, "high": 841.15, "low": 839.31, "close": 840.31, "volume": 3224.29}, {"time": 1766844000, "open": 840.31, "high": 840.59, "low": 838.59, "close": 839.4, "volume": 3370.87}, {"time": 1766847600, "open": 839.4, "high": 841.53, "low": 838.47, "close": 840.9, "volume": 3069.21}, {"time": 1766851200, "open": 840.9, "high": 841.77, "low": 840.25, "close": 840.58, "volume": 1923.64}, {"time": 1766854800, "open": 840.59, "high": 841.4, "low": 839.44, "close": 840.14, "volume": 2557.37}, {"time": 1766858400, "open": 840.14, "high": 840.45, "low": 839.7, "close": 839.88, "volume": 1051.31}, {"time": 1766862000, "open": 839.89, "high": 840.95, "low": 839.65, "close": 840.95, "volume": 792.855}, {"time": 1766865600, "open": 840.95, "high": 841.92, "low": 839.79, "close": 840.29, "volume": 1638.93}, {"time": 1766869200, "open": 840.3, "high": 842.49, "low": 840.29, "close": 842.37, "volume": 1127.18}, {"time": 1766872800, "open": 842.37, "high": 846.54, "low": 841.08, "close": 842.12, "volume": 4027.92}, {"time": 1766876400, "open": 842.13, "high": 846.38, "low": 842.12, "close": 845.04, "volume": 2745.01}, {"time": 1766880000, "open": 845.05, "high": 845.68, "low": 842.59, "close": 842.61, "volume": 2878.65}, {"time": 1766883600, "open": 842.61, "high": 843.3, "low": 839.2, "close": 840.29, "volume": 2988.33}, {"time": 1766887200, "open": 840.3, "high": 842.59, "low": 840.05, "close": 841.5, "volume": 2043.44}, {"time": 1766890800, "open": 841.49, "high": 842.0, "low": 840.5, "close": 841.6, "volume": 1602.35}, {"time": 1766894400, "open": 841.61, "high": 844.05, "low": 841.4, "close": 843.03, "volume": 1714.14}, {"time": 1766898000, "open": 843.03, "high": 844.07, "low": 842.12, "close": 843.07, "volume": 4384.29}, {"time": 1766901600, "open": 843.07, "high": 844.2, "low": 842.79, "close": 843.7, "volume": 1520.84}, {"time": 1766905200, "open": 843.71, "high": 844.1, "low": 843.3, "close": 843.92, "volume": 1343.86}, {"time": 1766908800, "open": 843.92, "high": 846.97, "low": 843.92, "close": 845.63, "volume": 2459.88}, {"time": 1766912400, "open": 845.64, "high": 846.38, "low": 844.14, "close": 845.59, "volume": 3171.73}, {"time": 1766916000, "open": 845.58, "high": 849.87, "low": 845.58, "close": 848.08, "volume": 4871.97}, {"time": 1766919600, "open": 848.08, "high": 857.0, "low": 847.99, "close": 854.6, "volume": 11597.2}, {"time": 1766923200, "open": 854.61, "high": 857.22, "low": 854.6, "close": 855.54, "volume": 4485.92}, {"time": 1766926800, "open": 855.55, "high": 858.7, "low": 855.32, "close": 858.05, "volume": 5493.01}, {"time": 1766930400, "open": 858.05, "high": 859.33, "low": 856.37, "close": 857.52, "volume": 4877.18}, {"time": 1766934000, "open": 857.52, "high": 863.4, "low": 857.37, "close": 860.58, "volume": 6623.0}, {"time": 1766937600, "open": 860.57, "high": 865.09, "low": 860.12, "close": 864.0, "volume": 7197.74}, {"time": 1766941200, "open": 864.01, "high": 866.4, "low": 863.14, "close": 866.26, "volume": 4561.64}, {"time": 1766944800, "open": 866.27, "high": 867.22, "low": 858.84, "close": 859.0, "volume": 6166.72}, {"time": 1766948400, "open": 859.0, "high": 862.51, "low": 858.81, "close": 859.68, "volume": 2426.26}, {"time": 1766952000, "open": 859.68, "high": 862.37, "low": 858.69, "close": 860.66, "volume": 1783.7}, {"time": 1766955600, "open": 860.65, "high": 860.81, "low": 856.84, "close": 858.2, "volume": 2657.29}, {"time": 1766959200, "open": 858.2, "high": 860.9, "low": 857.0, "close": 860.06, "volume": 2199.91}, {"time": 1766962800, "open": 860.05, "high": 860.64, "low": 857.0, "close": 859.32, "volume": 2552.95}, {"time": 1766966400, "open": 859.32, "high": 864.85, "low": 858.71, "close": 862.52, "volume": 4778.32}, {"time": 1766970000, "open": 862.52, "high": 865.31, "low": 859.3, "close": 864.54, "volume": 4859.83}, {"time": 1766973600, "open": 864.55, "high": 872.12, "low": 864.54, "close": 866.84, "volume": 12779.7}, {"time": 1766977200, "open": 866.84, "high": 871.13, "low": 866.19, "close": 869.19, "volume": 6612.94}, {"time": 1766980800, "open": 869.2, "high": 871.66, "low": 867.8, "close": 868.77, "volume": 4282.72}, {"time": 1766984400, "open": 868.77, "high": 868.9, "low": 864.03, "close": 864.57, "volume": 5380.25}, {"time": 1766988000, "open": 864.56, "high": 865.95, "low": 863.52, "close": 863.84, "volume": 2912.97}, {"time": 1766991600, "open": 863.84, "high": 864.0, "low": 858.8, "close": 860.58, "volume": 10496.7}, {"time": 1766995200, "open": 860.58, "high": 861.79, "low": 858.6, "close": 858.84, "volume": 6130.69}, {"time": 1766998800, "open": 858.83, "high": 858.91, "low": 847.55, "close": 851.49, "volume": 11049.1}, {"time": 1767002400, "open": 851.48, "high": 854.69, "low": 850.93, "close": 853.95, "volume": 5967.69}, {"time": 1767006000, "open": 853.96, "high": 855.58, "low": 852.75, "close": 853.04, "volume": 4151.62}, {"time": 1767009600, "open": 853.05, "high": 853.9, "low": 846.0, "close": 851.86, "volume": 10556.4}, {"time": 1767013200, "open": 851.87, "high": 853.25, "low": 848.64, "close": 849.99, "volume": 4209.55}, {"time": 1767016800, "open": 849.99, "high": 855.4, "low": 848.56, "close": 851.09, "volume": 5765.29}, {"time": 1767020400, "open": 851.1, "high": 855.06, "low": 850.25, "close": 853.6, "volume": 6869.17}, {"time": 1767024000, "open": 853.59, "high": 855.26, "low": 850.0, "close": 853.81, "volume": 5148.63}, {"time": 1767027600, "open": 853.82, "high": 854.76, "low": 852.0, "close": 854.52, "volume": 2141.8}, {"time": 1767031200, "open": 854.53, "high": 855.69, "low": 851.11, "close": 851.86, "volume": 4376.04}, {"time": 1767034800, "open": 851.87, "high": 853.47, "low": 851.27, "close": 853.03, "volume": 2334.69}, {"time": 1767038400, "open": 853.03, "high": 855.04, "low": 851.43, "close": 852.72, "volume": 2729.98}, {"time": 1767042000, "open": 852.73, "high": 854.9, "low": 852.5, "close": 854.74, "volume": 948.661}, {"time": 1767045600, "open": 854.75, "high": 854.75, "low": 852.9, "close": 853.57, "volume": 990.136}, {"time": 1767049200, "open": 853.57, "high": 853.8, "low": 852.02, "close": 852.46, "volume": 1678.62}, {"time": 1767052800, "open": 852.46, "high": 853.5, "low": 850.68, "close": 851.59, "volume": 1273.11}, {"time": 1767056400, "open": 851.6, "high": 853.19, "low": 850.28, "close": 852.51, "volume": 1607.64}, {"time": 1767060000, "open": 852.51, "high": 852.68, "low": 848.9, "close": 849.74, "volume": 2425.44}, {"time": 1767063600, "open": 849.75, "high": 853.18, "low": 848.7, "close": 852.5, "volume": 2703.34}, {"time": 1767067200, "open": 852.5, "high": 853.2, "low": 851.07, "close": 852.41, "volume": 2062.18}, {"time": 1767070800, "open": 852.42, "high": 853.1, "low": 850.38, "close": 850.93, "volume": 2079.39}, {"time": 1767074400, "open": 850.94, "high": 854.89, "low": 850.77, "close": 853.54, "volume": 2660.39}, {"time": 1767078000, "open": 853.54, "high": 854.85, "low": 853.09, "close": 853.75, "volume": 2123.14}, {"time": 1767081600, "open": 853.75, "high": 859.76, "low": 853.75, "close": 856.51, "volume": 6952.82}, {"time": 1767085200, "open": 856.51, "high": 857.35, "low": 854.67, "close": 856.61, "volume": 2633.03}, {"time": 1767088800, "open": 856.62, "high": 856.94, "low": 854.89, "close": 855.33, "volume": 3147.25}, {"time": 1767092400, "open": 855.34, "high": 856.09, "low": 853.79, "close": 854.8, "volume": 2541.57}, {"time": 1767096000, "open": 854.8, "high": 856.57, "low": 854.61, "close": 856.55, "volume": 2539.98}, {"time": 1767099600, "open": 856.55, "high": 863.22, "low": 856.41, "close": 862.62, "volume": 6120.05}, {"time": 1767103200, "open": 862.63, "high": 864.05, "low": 857.82, "close": 861.91, "volume": 7246.67}, {"time": 1767106800, "open": 861.91, "high": 863.59, "low": 857.77, "close": 862.78, "volume": 5695.64}, {"time": 1767110400, "open": 862.79, "high": 863.06, "low": 858.4, "close": 860.44, "volume": 3431.87}, {"time": 1767114000, "open": 860.45, "high": 861.66, "low": 858.45, "close": 860.19, "volume": 2825.2}, {"time": 1767117600, "open": 860.19, "high": 861.71, "low": 858.67, "close": 860.31, "volume": 2099.53}, {"time": 1767121200, "open": 860.32, "high": 860.32, "low": 857.35, "close": 859.79, "volume": 3729.2}, {"time": 1767124800, "open": 859.79, "high": 860.29, "low": 858.5, "close": 858.7, "volume": 1951.29}, {"time": 1767128400, "open": 858.7, "high": 861.24, "low": 858.33, "close": 861.23, "volume": 1851.5}, {"time": 1767132000, "open": 861.23, "high": 862.81, "low": 860.61, "close": 861.59, "volume": 1431.85}, {"time": 1767135600, "open": 861.58, "high": 863.06, "low": 861.1, "close": 861.65, "volume": 2100.96}, {"time": 1767139200, "open": 861.66, "high": 862.47, "low": 859.09, "close": 859.4, "volume": 2216.03}, {"time": 1767142800, "open": 859.41, "high": 863.0, "low": 858.8, "close": 861.47, "volume": 1959.72}, {"time": 1767146400, "open": 861.48, "high": 861.48, "low": 859.05, "close": 860.13, "volume": 1535.97}, {"time": 1767150000, "open": 860.13, "high": 860.79, "low": 857.69, "close": 859.29, "volume": 1871.75}, {"time": 1767153600, "open": 859.29, "high": 861.23, "low": 858.99, "close": 861.23, "volume": 5825.71}, {"time": 1767157200, "open": 861.23, "high": 864.0, "low": 860.38, "close": 863.19, "volume": 11047.1}, {"time": 1767160800, "open": 863.2, "high": 866.65, "low": 862.92, "close": 866.12, "volume": 10971.2}, {"time": 1767164400, "open": 866.12, "high": 868.0, "low": 864.84, "close": 867.99, "volume": 8591.91}, {"time": 1767168000, "open": 867.99, "high": 869.04, "low": 864.95, "close": 866.31, "volume": 6056.41}, {"time": 1767171600, "open": 866.31, "high": 866.78, "low": 865.22, "close": 865.34, "volume": 3228.31}, {"time": 1767175200, "open": 865.35, "high": 869.15, "low": 865.2, "close": 868.14, "volume": 6740.79}, {"time": 1767178800, "open": 868.14, "high": 869.35, "low": 867.68, "close": 869.2, "volume": 5026.01}, {"time": 1767182400, "open": 869.19, "high": 869.34, "low": 866.08, "close": 866.85, "volume": 4241.39}, {"time": 1767186000, "open": 866.85, "high": 869.0, "low": 866.3, "close": 868.44, "volume": 5081.43}, {"time": 1767189600, "open": 868.44, "high": 877.29, "low": 864.9, "close": 866.09, "volume": 21670.8}, {"time": 1767193200, "open": 866.09, "high": 866.8, "low": 860.53, "close": 863.3, "volume": 14334.4}, {"time": 1767196800, "open": 863.3, "high": 864.5, "low": 857.88, "close": 861.58, "volume": 8299.67}, {"time": 1767200400, "open": 861.58, "high": 863.65, "low": 861.25, "close": 862.61, "volume": 4605.21}, {"time": 1767204000, "open": 862.62, "high": 864.48, "low": 861.72, "close": 862.01, "volume": 4701.91}, {"time": 1767207600, "open": 862.01, "high": 864.81, "low": 862.01, "close": 864.32, "volume": 5782.26}, {"time": 1767211200, "open": 864.31, "high": 864.48, "low": 860.84, "close": 863.49, "volume": 8788.48}, {"time": 1767214800, "open": 863.49, "high": 866.38, "low": 863.48, "close": 866.0, "volume": 2182.31}, {"time": 1767218400, "open": 866.0, "high": 866.56, "low": 864.0, "close": 864.48, "volume": 2852.08}, {"time": 1767222000, "open": 864.48, "high": 865.56, "low": 864.17, "close": 864.3, "volume": 2383.7}, {"time": 1767225600, "open": 864.31, "high": 866.6, "low": 863.79, "close": 866.35, "volume": 2739.97}, {"time": 1767229200, "open": 866.34, "high": 873.77, "low": 866.19, "close": 872.83, "volume": 9777.18}, {"time": 1767232800, "open": 872.83, "high": 874.51, "low": 870.67, "close": 871.58, "volume": 5451.7}, {"time": 1767236400, "open": 871.58, "high": 873.4, "low": 868.73, "close": 869.16, "volume": 3076.0}, {"time": 1767240000, "open": 869.15, "high": 869.21, "low": 862.0, "close": 863.4, "volume": 6806.68}, {"time": 1767243600, "open": 863.4, "high": 865.03, "low": 862.49, "close": 862.74, "volume": 5098.23}, {"time": 1767247200, "open": 862.73, "high": 864.5, "low": 861.64, "close": 861.78, "volume": 3676.35}, {"time": 1767250800, "open": 861.79, "high": 861.79, "low": 859.2, "close": 859.52, "volume": 3659.0}, {"time": 1767254400, "open": 859.52, "high": 861.65, "low": 858.98, "close": 861.37, "volume": 2336.52}, {"time": 1767258000, "open": 861.37, "high": 861.7, "low": 859.99, "close": 860.15, "volume": 2542.98}, {"time": 1767261600, "open": 860.15, "high": 861.75, "low": 860.15, "close": 861.21, "volume": 2015.61}, {"time": 1767265200, "open": 861.21, "high": 861.97, "low": 860.59, "close": 861.59, "volume": 2136.94}, {"time": 1767268800, "open": 861.6, "high": 861.6, "low": 856.14, "close": 859.12, "volume": 4775.03}, {"time": 1767272400, "open": 859.12, "high": 860.8, "low": 858.48, "close": 858.71, "volume": 2617.26}, {"time": 1767276000, "open": 858.72, "high": 859.63, "low": 857.14, "close": 857.94, "volume": 2352.25}, {"time": 1767279600, "open": 857.95, "high": 860.54, "low": 856.34, "close": 859.36, "volume": 3682.5}, {"time": 1767283200, "open": 859.36, "high": 859.92, "low": 857.41, "close": 858.1, "volume": 2155.1}, {"time": 1767286800, "open": 858.1, "high": 861.08, "low": 857.22, "close": 859.99, "volume": 2900.1}, {"time": 1767290400, "open": 859.99, "high": 860.33, "low": 858.91, "close": 860.09, "volume": 1842.99}, {"time": 1767294000, "open": 860.09, "high": 861.77, "low": 859.15, "close": 861.56, "volume": 2061.04}, {"time": 1767297600, "open": 861.57, "high": 862.14, "low": 860.16, "close": 861.02, "volume": 2678.49}, {"time": 1767301200, "open": 861.02, "high": 862.76, "low": 860.89, "close": 862.38, "volume": 1161.91}, {"time": 1767304800, "open": 862.38, "high": 863.94, "low": 861.41, "close": 863.49, "volume": 2680.26}, {"time": 1767308400, "open": 863.5, "high": 864.65, "low": 862.33, "close": 864.39, "volume": 2489.56}];
+                        var entryPrice2 = 865.88;
+                        var exitPrice2 = 864.3;
+                        var exitReason2 = 'END_OF_BACKTEST';
+                        // Konwertuj czasy do Unix timestamp
+                        var entryTime2 = Math.floor(new Date('2025-12-17 06:00:00').getTime() / 1000);
+                        var exitTime2 = Math.floor(new Date('2025-12-31 23:59:59').getTime() / 1000);
+                    </script>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            Raport wygenerowany: 2026-01-18 17:22:22 | 
+            Backtest Engine v2.0 | Kliknij na transakcję aby zobaczyć wykres świecowy
+        </div>
+    </div>
+    
+    <script>
+        // Przechowuj wykresy
+        const charts = {};
+        
+        function toggleChart(tradeId) {
+            const chartDiv = document.getElementById(`chart-${tradeId}`);
+            const icon = document.getElementById(`icon-${tradeId}`);
+            const header = chartDiv.previousElementSibling;
+            
+            // Toggle visibility
+            chartDiv.classList.toggle('active');
+            icon.classList.toggle('active');
+            header.classList.toggle('active');
+            
+            // Utwórz wykres jeśli jeszcze nie istnieje
+            if (chartDiv.classList.contains('active') && !charts[tradeId]) {
+                createChart(tradeId);
+            }
+        }
+        
+        function createChart(tradeId) {
+            const container = document.getElementById(`chart-container-${tradeId}`);
+            const candlesData = window[`chartData${tradeId}`];
+            const entryPrice = window[`entryPrice${tradeId}`];
+            const exitPrice = window[`exitPrice${tradeId}`];
+            const entryTime = window[`entryTime${tradeId}`];
+            const exitTime = window[`exitTime${tradeId}`];
+            const exitReason = window[`exitReason${tradeId}`] || 'UNKNOWN';
+            
+            if (!candlesData || candlesData.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px;">Brak danych świeczek dla tej transakcji</p>';
+                return;
+            }
+            
+            // Utwórz wykres
+            const chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 400,
+                layout: {
+                    background: { color: '#ffffff' },
+                    textColor: '#333',
+                },
+                grid: {
+                    vertLines: { color: '#e1e1e1' },
+                    horzLines: { color: '#e1e1e1' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#cccccc',
+                },
+                timeScale: {
+                    borderColor: '#cccccc',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+            
+            // Dodaj serię świecową
+            const candlestickSeries = chart.addCandlestickSeries({
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderVisible: false,
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
+            });
+            
+            // Konwertuj dane
+            const formattedData = candlesData.map(candle => ({
+                time: candle.time,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+            }));
+            
+            candlestickSeries.setData(formattedData);
+            
+            // Dodaj linie wejścia i wyjścia
+            const entryLine = chart.addLineSeries({
+                color: '#2196F3',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                title: 'Wejście',
+            });
+            
+            const exitLine = chart.addLineSeries({
+                color: '#FF9800',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                title: 'Wyjście',
+            });
+            
+            // Ustaw dane dla linii
+            entryLine.setData([
+                { time: formattedData[0].time, value: entryPrice },
+                { time: formattedData[formattedData.length - 1].time, value: entryPrice }
+            ]);
+            
+            exitLine.setData([
+                { time: formattedData[0].time, value: exitPrice },
+                { time: formattedData[formattedData.length - 1].time, value: exitPrice }
+            ]);
+            
+            // Dodaj markery dla punktów wejścia/wyjścia
+            const markers = [
+                {
+                    time: entryTime,
+                    position: 'belowBar',
+                    color: '#2196F3',
+                    shape: 'arrowUp',
+                    text: 'KUPNO @ ' + entryPrice.toFixed(4)
+                },
+                {
+                    time: exitTime,
+                    position: 'aboveBar',
+                    color: '#FF9800',
+                    shape: 'arrowDown',
+                    text: 'SPRZEDAŻ @ ' + exitPrice.toFixed(4) + ' (' + exitReason + ')'
+                }
+            ];
+            
+            candlestickSeries.setMarkers(markers);
+            
+            // Dopasuj widok
+            chart.timeScale().fitContent();
+            
+            // Zapisz wykres
+            charts[tradeId] = chart;
+            
+            // Obsługa zmiany rozmiaru
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth });
+            });
+        }
+    </script>
+</body>
+</html>
