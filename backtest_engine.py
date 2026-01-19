@@ -865,7 +865,7 @@ Przykłady użycia:
                 'num_falling': 5,
                 'allow_one_break': True,
                 'take_profit_perc': 4.0,
-                'stop_loss_perc': 10.0,  # Optymalny stosunek TP:SL (4:6)
+                'stop_loss_perc': 12.0,  # Optymalny stosunek TP:SL (4:6)
                 'red_candles_to_sell': 2,
                 'loss_lookback_bars': 6
             }
