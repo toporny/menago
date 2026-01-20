@@ -62,6 +62,25 @@
                 "red_candles_to_sell": 2,
                 "loss_lookback_bars": 2
             }
+        },
+        {
+            "symbol": "DOGEUSDT",
+            "table": "dogeusdt_1h",
+            "strategy": "DOGEMomentumStrategy",
+            "strategy_id": "DOGE_Momentum_v2_Optimized",
+            "buy_quantity": 100,
+            "enabled": true,
+            "params": {
+                "red_candles_min": 2,
+                "red_candles_max": 2,
+                "price_below_ma20_pct": 1.0,
+                "volume_increase_pct": 25.0,
+                "rsi_oversold": 40,
+                "stop_loss_pct": 1.2,
+                "take_profit_pct": 3.0,
+                "trailing_activation_pct": 1.5,
+                "trailing_stop_pct": 0.8
+            }
         }
     ]
 }

@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple
 from database_manager import DatabaseManager
 from sliding_window import SlidingWindow
-from strategies import XRPPineScriptStrategy
+from strategies import XRPPineScriptStrategy, DOGEMomentumStrategy
 import json
 
 
@@ -514,7 +514,15 @@ class BacktestEngine:
                 'initial_capital': self.initial_capital,
                 'final_capital': self.capital,
                 'total_return_perc': 0,
-                'total_trades': 0
+                'total_return_usdt': 0,
+                'total_trades': 0,
+                'winning_trades': 0,
+                'losing_trades': 0,
+                'win_rate': 0,
+                'avg_profit': 0,
+                'avg_loss': 0,
+                'trades': [],
+                'equity_curve': self.equity_curve
             }
         
         # Statystyki
@@ -782,9 +790,9 @@ Przykłady użycia:
     parser.add_argument(
         '--strategy',
         type=str,
-        choices=['XRP', 'BNB', 'RED', 'FALLING'],
+        choices=['XRP', 'BNB', 'RED', 'FALLING', 'DOGE'],
         default='XRP',
-        help='Strategia do przetestowania (XRP=XRPPineScript, BNB=BNBPineScript, RED=RedCandles, FALLING=FallingCandles)'
+        help='Strategia do przetestowania (XRP=XRPPineScript, BNB=BNBPineScript, RED=RedCandles, FALLING=FallingCandles, DOGE=DOGEPineScript)'
     )
     
     parser.add_argument(
@@ -892,6 +900,21 @@ Przykłady użycia:
                 'red_candles_to_sell': 3,
                 'loss_lookback_bars': 1
             }
+        },
+        'DOGE': {
+            'class': 'DOGEMomentumStrategy',
+            'name': 'DOGE Momentum Reversal v2.0 OPTIMIZED',
+            'params': {
+                'red_candles_min': 2,
+                'red_candles_max': 2,
+                'price_below_ma20_pct': 1.0,
+                'volume_increase_pct': 25.0,
+                'rsi_oversold': 40,
+                'stop_loss_pct': 1.2,
+                'take_profit_pct': 3.0,
+                'trailing_activation_pct': 1.5,
+                'trailing_stop_pct': 0.8
+            }
         }
     }
     
@@ -902,14 +925,16 @@ Przykłady użycia:
         XRPPineScriptStrategy,
         BNBPineScriptStrategy,
         RedCandlesSequenceStrategy,
-        FallingCandlesStrategy
+        FallingCandlesStrategy,
+        DOGEMomentumStrategy
     )
     
     strategy_classes = {
         'XRPPineScriptStrategy': XRPPineScriptStrategy,
         'BNBPineScriptStrategy': BNBPineScriptStrategy,
         'RedCandlesSequenceStrategy': RedCandlesSequenceStrategy,
-        'FallingCandlesStrategy': FallingCandlesStrategy
+        'FallingCandlesStrategy': FallingCandlesStrategy,
+        'DOGEMomentumStrategy': DOGEMomentumStrategy
     }
     
     strategy_class = strategy_classes[strategy_config['class']]

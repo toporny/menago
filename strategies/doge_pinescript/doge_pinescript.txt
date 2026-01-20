@@ -1,0 +1,177 @@
+//@version=6
+strategy(
+     "Falling Candles + Dynamic SL + Buy Drop Label",
+     overlay = true,
+     initial_capital = 100,
+     default_qty_type = strategy.percent_of_equity,
+     default_qty_value = 100,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.1
+)
+
+// =====================
+// PARAMETRY
+// =====================
+startDate = input.time(timestamp("2025-01-01 00:00"), "Data OD")
+endDate   = input.time(timestamp("2025-12-31 23:59"), "Data DO")
+
+candleCount = input.int(6, "Liczba opadających świeczek", minval = 2)
+priceBelowMA20Pct = input.float(2.0, "Cena poniżej MA20 (%)", step = 0.1) / 100
+minRedBodyPct = input.float(2.0, "Min spadek czerwonej świecy (%)", step = 0.1) / 100
+profitTriggerPct = input.float(2.0, "Zysk % do trybu obserwacji", step = 0.1) / 100
+
+stopLossMultiplier = input.float(1, "Mnożnik Stop Lossa", step = 0.1)
+
+redCandleCountTrigger = input.int(2, "Czerwone świece do szybkiej sprzedaży", minval = 2)
+redCandleAboveMA20Pct = input.float(1.0, "Pierwsza czerwona > MA20 (%)", step = 0.1) / 100
+
+// =====================
+// ŚREDNIE KROCZĄCE
+// =====================
+ma10  = ta.sma(close, 10)
+ma20  = ta.sma(close, 20)
+ma50  = ta.sma(close, 50)
+ma100 = ta.sma(close, 100)
+ma200 = ta.sma(close, 200)
+
+// =====================
+// FILTR DAT
+// =====================
+inDateRange = time >= startDate and time <= endDate
+
+// =====================
+// FUNKCJE ŚWIEC
+// =====================
+bodyMid(bar) =>
+    (open[bar] + close[bar]) / 2
+
+isRed(bar) =>
+    close[bar] < open[bar]
+
+isStrongRed(bar) =>
+    isRed(bar) and (open[bar] - close[bar]) / open[bar] >= minRedBodyPct
+
+// =====================
+// OPADAJĄCE ŚWIECE
+// =====================
+fallingSequence = true
+for i = 0 to candleCount - 2
+    if bodyMid(i) >= bodyMid(i + 1)
+        fallingSequence := false
+
+// =====================
+// SILNA CZERWONA
+// =====================
+strongRedExists = false
+for i = 0 to candleCount - 1
+    if isStrongRed(i)
+        strongRedExists := true
+
+// =====================
+// TREND MA
+// =====================
+maTrendDown = ma20 < ma50 and ma50 < ma100 and ma100 < ma200
+
+// =====================
+// CENA < MA20
+// =====================
+priceCondition = close < ma20 * (1 - priceBelowMA20Pct)
+
+// =====================
+// 🔥 DYNAMICZNY STOP LOSS
+// =====================
+midStart = bodyMid(candleCount - 1)   // pierwsza świeca sekwencji
+midEnd   = bodyMid(0)                 // ostatnia świeca sekwencji
+
+fallDropPct = (midStart - midEnd) / midStart
+stopLossPct = fallDropPct * stopLossMultiplier
+
+validStopLoss = stopLossPct > 0 and stopLossPct < 0.5
+
+// =====================
+// WEJŚCIE
+// =====================
+buyCondition =     inDateRange and     fallingSequence and     strongRedExists and     maTrendDown and     priceCondition and     validStopLoss and     strategy.position_size == 0
+
+var float tradeStopLossPct = na
+var float entryPrice = na
+
+if buyCondition
+    tradeStopLossPct := stopLossPct
+    strategy.entry("BUY", strategy.long)
+
+    // 🔹 ETYKIETA BUY + SUMA SPADKU
+    label.new(
+        bar_index,
+        low,
+        text =
+            "BUY\n" +
+            "Spadek: " + str.tostring(fallDropPct * 100, "#.##") + "%",
+        style = label.style_label_up,
+        color = color.green,
+        textcolor = color.white,
+        size = size.small
+    )
+
+// =====================
+// ZARZĄDZANIE POZYCJĄ
+// =====================
+var bool observerActive = false
+var int redCandleStreak = 0
+var float firstRedCandleMid = na
+
+if strategy.position_size > 0
+    if na(entryPrice)
+        entryPrice := strategy.position_avg_price
+
+    // STOP LOSS
+    strategy.exit(
+        "SL",
+        from_entry = "BUY",
+        stop = entryPrice * (1 - tradeStopLossPct)
+    )
+
+    // TRYB OBSERWACJI
+    if not observerActive and close >= entryPrice * (1 + profitTriggerPct)
+        observerActive := true
+        redCandleStreak := 0
+        firstRedCandleMid := na
+
+    if observerActive
+        if isRed(0)
+            redCandleStreak += 1
+            if na(firstRedCandleMid)
+                firstRedCandleMid := bodyMid(0)
+        else
+            redCandleStreak := 0
+            firstRedCandleMid := na
+
+        // szybka sprzedaż – czerwone + wysoko nad MA20
+        if redCandleStreak >= redCandleCountTrigger and
+           firstRedCandleMid > ma20 * (1 + redCandleAboveMA20Pct)
+            strategy.close("BUY")
+
+        // szybka sprzedaż – środek korpusu < cena wejścia
+        if bodyMid(0) < entryPrice
+            strategy.close("BUY")
+
+        // sprzedaż trendowa
+        if ma10[1] > ma50[1] and ma10 < ma50
+            strategy.close("BUY")
+
+else
+    // RESET
+    observerActive := false
+    entryPrice := na
+    tradeStopLossPct := na
+    redCandleStreak := 0
+    firstRedCandleMid := na
+
+// =====================
+// WIZUALIZACJA
+// =====================
+plot(ma10,  color=color.yellow)
+plot(ma20,  color=color.orange)
+plot(ma50,  color=color.red)
+plot(ma100, color=color.blue)
+plot(ma200, color=color.purple)
