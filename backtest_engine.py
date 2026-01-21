@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple
 from database_manager import DatabaseManager
 from sliding_window import SlidingWindow
-from strategies import XRPPineScriptStrategy, DOGEMomentumStrategy
 import json
 
 
@@ -925,16 +924,14 @@ Przykłady użycia:
         XRPPineScriptStrategy,
         BNBPineScriptStrategy,
         RedCandlesSequenceStrategy,
-        FallingCandlesStrategy,
-        DOGEMomentumStrategy
+        FallingCandlesStrategy
     )
     
     strategy_classes = {
         'XRPPineScriptStrategy': XRPPineScriptStrategy,
         'BNBPineScriptStrategy': BNBPineScriptStrategy,
         'RedCandlesSequenceStrategy': RedCandlesSequenceStrategy,
-        'FallingCandlesStrategy': FallingCandlesStrategy,
-        'DOGEMomentumStrategy': DOGEMomentumStrategy
+        'FallingCandlesStrategy': FallingCandlesStrategy
     }
     
     strategy_class = strategy_classes[strategy_config['class']]
