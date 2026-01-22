@@ -775,14 +775,20 @@ Przykłady użycia:
   # XRP PineScript Strategy na Q4 2025
   python backtest_engine.py --strategy XRP --start "2025-10-01" --end "2025-12-31"
   
-  # BNB PineScript Strategy na cały rok
-  python backtest_engine.py --strategy BNB --start "2025-01-01" --end "2025-12-31"
+  # BNB PineScript Strategy na cały rok (zoptymalizowane)
+  python backtest_engine.py --strategy BNB --start "2025-01-01" --end "2025-12-31" --optimized
   
-  # Red Candles Strategy na miesiąc
-  python backtest_engine.py --strategy RED --start "2025-11-01" --end "2025-11-30"
+  # Tylko wybrane waluty (multi-asset backtest)
+  python backtest_engine.py --strategy BNB --start "2025-01-01" --end "2025-12-31" --optimized --symbols TRXUSDT ZECUSDT LTCUSDT
+  
+  # Jedna waluta (single-asset backtest)
+  python backtest_engine.py --strategy BNB --start "2025-01-01" --end "2025-12-31" --optimized --symbols BNBUSDT
   
   # Własny kapitał początkowy
   python backtest_engine.py --strategy XRP --capital 500 --start "2025-10-01" --end "2025-12-31"
+  
+  # Wszystkie waluty z bazy (bez --symbols)
+  python backtest_engine.py --strategy BNB --start "2025-01-01" --end "2025-12-31" --optimized
         """
     )
     
@@ -835,7 +841,7 @@ Przykłady użycia:
         '--symbols',
         type=str,
         nargs='*',
-        help='Lista symboli do testowania (np. BTCUSDT ETHUSDT), puste = wszystkie'
+        help='Lista symboli do testowania (np. TRXUSDT ZECUSDT LTCUSDT). Puste = wszystkie waluty z bazy. Multi-asset: bot kupuje pierwszą walutę z sygnałem, sprzedaje, potem szuka kolejnej.'
     )
     
     args = parser.parse_args()
